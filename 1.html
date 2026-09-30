@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>小羊的音乐相框综合工具</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  html, body { -webkit-tap-highlight-color: transparent; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ============ 选项卡 ============ */
+  .tabs-wrap {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    justify-content: center; margin-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .tab-button {
+    padding: 12px 14px; font-size: 15px; font-weight: 500;
+    border: none; background: transparent; cursor: pointer;
+    color: #6b7280; white-space: nowrap;
+  }
+  .tab-button.active {
+    color: #2563eb;
+    border-bottom: 2px solid #2563eb;
+  }
+
+  /* ============ 通用按钮适配（手指） ============ */
+  button { touch-action: manipulation; min-height: 40px; }
+
+  /* ============ 屏幕图片编辑 canvas ============ */
+  .canvas-container {
+    position: relative;
+    width: 100%;
+    max-width: 296px;
+    aspect-ratio: 296 / 240;
+    margin: 16px auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  #imageCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    touch-action: none;
+  }
+
+  .image-item {
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid transparent;
+  }
+  .image-item.active { border-color: #3b82f6; background: #eff6ff; }
+  .audio-item { transition: all 0.15s; border: 1px solid #e5e7eb; }
+  .audio-item.completed { border-color: #86efac; background: #f0fdf4; }
+
+  /* ============ 相框工具 ============ */
+  #frameToolContainer {
+    --accent: #4f6ef7;
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --border: #e2e6ef;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+    --radius: 14px;
+    background: var(--bg);
+    padding: 12px;
+    border-radius: var(--radius);
+  }
+  .canvas-panels { display: flex; flex-direction: column; gap: 16px; }
+
+  .canvas-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-header .title {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  /* 让 canvas 自适应：容器撑满，canvas 按比例缩放 */
+  .canvas-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 750px;
+    margin: 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #dde1ed;
+    background: #fafafa;
+  }
+  .canvas-wrapper canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: none;   /* 关键：禁止页面手势，避免拖动图片时页面滚动 */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* 按钮 */
+  .btn {
+    padding: 10px 16px;
+    border-radius: 22px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--accent);
+    color: #fff;
+    white-space: nowrap;
+    transition: background 0.2s;
+    touch-action: manipulation;
+  }
+  .btn:active { background: #3b54d4; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-outline {
+    background: #fff;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+  }
+  .btn-outline:active { background: #eef1ff; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  .badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+  .badge.warn { background: #fff3e0; color: #e65100; }
+
+  .upload-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* ============ 导出按钮区 ============ */
+  .export-area {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .export-btn {
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    background: #16a34a;
+    color: #fff;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 2px 8px rgba(22,163,74,0.25);
+  }
+  .export-btn:active { background: #15803d; }
+  .export-btn.secondary {
+    background: #2563eb;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+  }
+  .export-btn.secondary:active { background: #1d4ed8; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a1a2e;
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: 30px;
+    z-index: 999;
+    opacity: 0;
+    transition: 0.25s;
+    pointer-events: none;
+    font-size: 15px;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+
+  /* ============ 手机端布局微调 ============ */
+  @media (max-width: 640px) {
+    body { font-size: 14px; }
+    h1 { font-size: 22px !important; }
+    h2 { font-size: 18px !important; }
+    .tab-button { font-size: 13px; padding: 10px 8px; }
+    .card-header { flex-direction: column; align-items: flex-start; }
+    .upload-group { width: 100%; }
+    .btn { flex: 1; justify-content: center; }
+    .btn-sm { flex: none; }
+  }
+
+  /* 手柄在移动端放大显示 */
+  .handle-hint {
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+    padding: 4px 0;
+  }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen text-base">
+
+<div class="max-w-7xl mx-auto px-3 py-6">
+  <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-3">🐑 小羊的音乐相框综合工具</h1>
+  <p class="text-center text-gray-500 text-base mb-3">屏幕图片编辑 · 音乐文件编辑 · 相框照片和唱片图片定制</p>
+  <p class="text-center text-black font-bold text-sm md:text-base mb-5 leading-relaxed px-2">
+    💡 导出的图片和音频请通过电脑用读卡器拷贝到内存卡中命名为1‑9的文件夹内，其分别对应1‑9号的唱片，一个文件夹内至少需有一张图片和一个音频文件
+  </p>
+
+  <div class="tabs-wrap">
+    <button class="tab-button active" data-tab="0">🖼️ 屏幕图片编辑</button>
+    <button class="tab-button" data-tab="1">🎵 音乐文件编辑</button>
+    <button class="tab-button" data-tab="2">📷 相框照片和唱片图片定制</button>
+  </div>
+
+  <!-- ============ 选项卡0：屏幕图片编辑 ============ -->
+  <div class="tab-content active bg-white p-4 rounded-lg shadow-md" data-content="0">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-2">屏幕图片编辑（296×240 横屏编辑与导出）</h2>
+    <p class="text-gray-600 mb-2 text-center text-sm">上传图片，可调整其在屏幕显示的大小和位置，导出后复制到内存卡中1-9文件夹即可</p>
+    <p class="text-center text-orange-500 text-xs mb-4">⚠️ 提醒：导出的图片可用拼音重新命名，不能用中文命名，不然播放不了</p>
+
+    <div class="flex flex-col lg:flex-row gap-4">
+      <div class="lg:w-64 flex-shrink-0">
+        <div class="flex items-center justify-between mb-3 gap-2">
+          <span class="font-medium text-gray-700 text-sm">图片列表</span>
+          <div class="flex gap-2">
+            <input type="file" id="imageUploadBatch" accept="image/*" multiple class="hidden">
+            <button id="btnAddImages" class="px-3 py-2 bg-blue-600 text-white text-sm rounded active:bg-blue-700">添加图片</button>
+            <button id="btnClearImages" class="px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded active:bg-gray-300">清空</button>
+          </div>
+        </div>
+        <div id="imageList" class="space-y-2 max-h-72 overflow-y-auto scrollbar-thin border border-gray-200 rounded-lg p-2 bg-gray-50">
+          <p id="imageListEmpty" class="text-gray-400 text-sm text-center py-8">暂无图片，请添加</p>
+        </div>
+        <button id="btnExportAll" class="w-full mt-3 px-4 py-3 bg-green-600 text-white text-base rounded active:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>批量导出全部图片</button>
+      </div>
+      <div class="flex-1">
+        <div id="editorArea" class="text-center">
+          <p id="noImageHint" class="text-gray-400 text-sm py-12">请从上方选择一张图片进行编辑</p>
+          <div id="editorContent" class="hidden">
+            <div class="canvas-container" id="canvasContainer">
+              <canvas id="imageCanvas" width="296" height="240"></canvas>
+            </div>
+            <div class="slider-container px-2">
+              <label for="scaleSlider" class="block text-gray-700 text-sm mb-2">图片缩放：<span id="scaleValue">100</span>%</label>
+              <input type="range" id="scaleSlider" min="10" max="500" value="100" class="w-full">
+            </div>
+            <div class="flex justify-center gap-3 mt-2">
+              <button id="resetCurrentCanvas" class="px-5 py-2 bg-gray-200 active:bg-gray-300 rounded text-sm">重置位置</button>
+            </div>
+            <div class="handle-hint">💡 单指拖动图片移动，滑块缩放</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 选项卡1：音乐文件编辑 ============ -->
+  <div class="tab-content bg-white p-4 rounded-lg shadow-md" data-content="1">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-4">音乐文件编辑（输出 WAV）</h2>
+    <p class="text-gray-600 mb-2 text-center text-sm">上传 MP3、WAV、录音等，批量转换 WAV，下载后复制到内存卡对应1-9文件夹即可</p>
+    <p class="text-center text-orange-500 text-xs mb-4">⚠️ 提醒：导出的音频可用拼音重新命名，不能用中文命名，不然播放不了</p>
+
+    <div class="flex items-center justify-center gap-3 mb-4">
+      <span class="font-semibold text-gray-700 text-sm">采样率：</span>
+      <select id="sampleRateSelect" class="border border-gray-300 rounded-lg px-4 py-2 text-base">
+        <option value="44100" selected>44.1kHz（高音质）</option>
+        <option value="22050">22.05kHz（文件更小）</option>
+      </select>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-4">
+      <div class="lg:w-72 flex-shrink-0">
+        <div class="flex items-center justify-between mb-3 gap-2">
+          <span class="font-medium text-gray-700 text-sm">音频文件列表</span>
+          <div class="flex gap-2">
+            <input type="file" id="audioUploadBatch" accept="audio/*" multiple class="hidden">
+            <button id="btnAddAudios" class="px-3 py-2 bg-blue-600 text-white text-sm rounded active:bg-blue-700">添加文件</button>
+            <button id="btnClearAudios" class="px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded active:bg-gray-300">清空</button>
+          </div>
+        </div>
+        <div id="audioList" class="space-y-2 max-h-64 overflow-y-auto scrollbar-thin border border-gray-200 rounded-lg p-2 bg-gray-50">
+          <p id="audioListEmpty" class="text-gray-400 text-sm text-center py-8">暂无音频文件，请添加</p>
+        </div>
+        <button id="btnConvertAll" class="w-full mt-3 px-4 py-3 bg-green-600 text-white text-base rounded active:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>批量转换并下载全部</button>
+        <div id="conversionProgress" class="text-center text-gray-600 text-sm mt-3 hidden">正在转换，请稍候...</div>
+      </div>
+      <div class="flex-1 flex items-center justify-center">
+        <div class="text-center text-gray-500 text-sm">
+          <p class="text-lg mb-2">📁 支持批量上传</p>
+          <p>支持 MP3、WAV、录音等格式</p>
+          <p>可转换为 44.1kHz 或 22.05kHz WAV</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 选项卡2：相框照片和唱片图片定制 ============ -->
+  <div class="tab-content" data-content="2">
+    <div id="frameToolContainer">
+      <div class="text-center mb-4">
+        <h2 class="text-lg md:text-2xl font-bold text-gray-800">上传图片进行排版，设计相框内部海报</h2>
+        <p class="handle-hint mt-1">💡 单指拖动图片 · 双指捏合缩放 · 拖角手柄调整大小</p>
+      </div>
+
+      <div class="canvas-panels">
+        <!-- 相框正面 -->
+        <div class="canvas-card">
+          <div class="card-header">
+            <span class="title">📋 相框内正面图</span>
+            <div class="upload-group">
+              <input type="file" id="uploadA" accept="image/*" multiple style="display:none;">
+              <button class="btn btn-sm" id="btnUploadA">📤 添加图片</button>
+              <button class="btn btn-outline btn-sm" id="btnDeleteA">🗑️ 删除</button>
+            </div>
+          </div>
+          <div class="canvas-wrapper" id="wrapperA"><canvas id="canvasA"></canvas></div>
+        </div>
+
+        <!-- 相框背面 -->
+        <div class="canvas-card">
+          <div class="card-header">
+            <span class="title">📋 相框背面图</span>
+            <div class="upload-group">
+              <input type="file" id="uploadB" accept="image/*" multiple style="display:none;">
+              <button class="btn btn-sm" id="btnUploadB">📤 添加图片</button>
+              <button class="btn btn-outline btn-sm" id="btnDeleteB">🗑️ 删除</button>
+            </div>
+          </div>
+          <div class="canvas-wrapper" id="wrapperB"><canvas id="canvasB"></canvas></div>
+        </div>
+
+        <!-- 相框内侧边图 -->
+        <div class="canvas-card">
+          <div class="card-header">
+            <span class="title">📋 相框内侧边图 · 两条竖向</span>
+            <div class="upload-group">
+              <input type="file" id="uploadC_left" accept="image/*" multiple style="display:none;">
+              <input type="file" id="uploadC_right" accept="image/*" multiple style="display:none;">
+              <button class="btn btn-sm" id="btnUploadCLeft">⬅️ 左蒙版</button>
+              <button class="btn btn-sm" id="btnUploadCRight">➡️ 右蒙版</button>
+              <button class="btn btn-outline btn-sm" id="btnDeleteC">🗑️ 删除选中</button>
+            </div>
+          </div>
+          <div class="canvas-wrapper" id="wrapperC"><canvas id="canvasC"></canvas></div>
+        </div>
+
+        <!-- 黑胶唱片 -->
+        <div class="canvas-card">
+          <span class="title" style="align-self:flex-start;font-weight:600;font-size:16px;">🔵 黑胶唱片定制</span>
+          <p style="font-size:13px;color:#5a5a7a;margin:-4px 0 4px;">可定制24张黑胶唱片</p>
+          <div class="canvas-wrapper" id="wrapper2"><canvas id="canvas2"></canvas></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:10px;">
+            <span class="badge" id="badgeFilled">已填充: 0/24</span>
+            <button class="btn btn-outline btn-sm" id="btnReplaceCircle" disabled>🖼️ 替换选中</button>
+            <button class="btn btn-outline btn-sm" id="btnClearAll2">🗑️ 清除全部</button>
+          </div>
+          <div style="font-size:12px;color:#5a5a7a;text-align:center;margin-top:6px;line-height:1.6;">
+            👆 单击空圆上传 · 单击已填充圆选中<br>
+            选中后再拖动移动 · 双击替换
+          </div>
+          <input type="file" id="hiddenFileInput2" accept="image/*" style="display:none;">
+        </div>
+      </div>
+
+      <!-- ============ 两个导出按钮 ============ -->
+      <div class="export-area">
+        <button id="btnExportPDF1" class="export-btn">
+          📄 导出「相框正反面」PDF（2页）
+        </button>
+        <button id="btnExportPDF2" class="export-btn secondary">
+          📄 导出「侧边+唱片」PDF（2页）
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+ * 通用工具
+ * ============================================================ */
+const toastEl = document.getElementById('toast');
+function showToast(msg, duration = 1800) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastEl._timer);
+  toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), duration);
+}
+
+/* 选项卡切换 */
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabContents = document.querySelectorAll('.tab-content');
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabIndex = btn.getAttribute('data-tab');
+    tabButtons.forEach(b => b.classList.toggle('active', b === btn));
+    tabContents.forEach(content => {
+      content.classList.toggle('active', content.getAttribute('data-content') === tabIndex);
+    });
+    if (tabIndex === '2' && !window.vinylReady) {
+      setTimeout(() => initVinylCanvas(), 30);
+    }
+  });
+});
+
+/* ============================================================
+ * 功能一：屏幕图片编辑
+ * ============================================================ */
+const canvas = document.getElementById('imageCanvas');
+const ctx = canvas.getContext('2d');
+const canvasContainer = document.getElementById('canvasContainer');
+const scaleSlider = document.getElementById('scaleSlider');
+const scaleValue = document.getElementById('scaleValue');
+const imageList = document.getElementById('imageList');
+const imageListEmpty = document.getElementById('imageListEmpty');
+const noImageHint = document.getElementById('noImageHint');
+const editorContent = document.getElementById('editorContent');
+const btnExportAll = document.getElementById('btnExportAll');
+
+let imageEntries = [];
+let currentEditId = null;
+let isDragging = false, dragStartX, dragStartY, imageStartX, imageStartY;
+
+function getCurrentEntry() {
+  return currentEditId ? imageEntries.find(e => e.id === currentEditId) : null;
+}
+// 支持鼠标和触摸的位置换算
+function getCanvasMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.clientX != null ? e.clientX : (e.touches && e.touches[0].clientX);
+  const clientY = e.clientY != null ? e.clientY : (e.touches && e.touches[0].clientY);
+  return {
+    x: (clientX - rect.left) * (canvas.width / rect.width),
+    y: (clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+function isMouseOverImage(mx, my, entry) {
+  if (!entry) return false;
+  const w = entry.img.width * entry.scale, h = entry.img.height * entry.scale;
+  return mx >= entry.x && mx <= entry.x + w && my >= entry.y && my <= entry.y + h;
+}
+function drawCanvas(entry) {
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (entry && entry.img) {
+    const w = entry.img.width * entry.scale, h = entry.img.height * entry.scale;
+    ctx.drawImage(entry.img, entry.x, entry.y, w, h);
+  }
+}
+function updateScaleUI(entry) {
+  if (!entry) return;
+  scaleSlider.value = Math.round(entry.scale * 100);
+  scaleValue.textContent = Math.round(entry.scale * 100);
+}
+function refreshImageList() {
+  imageList.innerHTML = '';
+  if (imageEntries.length === 0) {
+    imageList.appendChild(imageListEmpty);
+    imageListEmpty.classList.remove('hidden');
+    btnExportAll.disabled = true;
+  } else {
+    imageListEmpty.classList.add('hidden');
+    btnExportAll.disabled = false;
+    imageEntries.forEach(entry => {
+      const div = document.createElement('div');
+      div.className = 'image-item flex items-center gap-3 p-3 rounded-lg text-sm ' + (entry.id === currentEditId ? 'active' : '');
+      div.innerHTML = `<div class="w-12 h-12 bg-gray-200 rounded flex-shrink-0 overflow-hidden flex items-center justify-center"><img src="${entry.img.src}" class="w-full h-full object-cover" alt=""></div><span class="text-sm truncate flex-1">${entry.name}</span><button class="delete-entry text-red-400 text-xl leading-none" data-id="${entry.id}">&times;</button>`;
+      div.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-entry')) return;
+        selectImage(entry.id);
+      });
+      div.querySelector('.delete-entry').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteImageEntry(entry.id);
+      });
+      imageList.appendChild(div);
+    });
+  }
+}
+function selectImage(id) {
+  saveCurrentState();
+  currentEditId = id;
+  const entry = getCurrentEntry();
+  if (entry) {
+    noImageHint.classList.add('hidden');
+    editorContent.classList.remove('hidden');
+    updateScaleUI(entry);
+    drawCanvas(entry);
+  }
+  refreshImageList();
+}
+function saveCurrentState() {
+  if (!currentEditId) return;
+  const entry = imageEntries.find(e => e.id === currentEditId);
+  if (entry) entry.scale = parseFloat(scaleSlider.value) / 100;
+}
+function deleteImageEntry(id) {
+  const idx = imageEntries.findIndex(e => e.id === id);
+  if (idx >= 0) {
+    imageEntries.splice(idx, 1);
+    if (currentEditId === id) currentEditId = imageEntries.length ? imageEntries[0].id : null;
+  }
+  const entry = getCurrentEntry();
+  if (entry) {
+    noImageHint.classList.add('hidden');
+    editorContent.classList.remove('hidden');
+    updateScaleUI(entry);
+    drawCanvas(entry);
+  } else {
+    noImageHint.classList.remove('hidden');
+    editorContent.classList.add('hidden');
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  refreshImageList();
+}
+function addImages(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const id = Date.now() + Math.random();
+        const entry = {
+          id, img, scale: 1.0,
+          x: (canvas.width - img.width) / 2,
+          y: (canvas.height - img.height) / 2,
+          name: file.name
+        };
+        imageEntries.push(entry);
+        if (!currentEditId) {
+          currentEditId = id;
+          noImageHint.classList.add('hidden');
+          editorContent.classList.remove('hidden');
+          updateScaleUI(entry);
+          drawCanvas(entry);
+        }
+        refreshImageList();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+document.getElementById('btnAddImages').addEventListener('click', () => document.getElementById('imageUploadBatch').click());
+document.getElementById('imageUploadBatch').addEventListener('change', function (e) {
+  if (e.target.files.length) { addImages(e.target.files); e.target.value = ''; }
+});
+document.getElementById('btnClearImages').addEventListener('click', () => {
+  imageEntries = []; currentEditId = null;
+  noImageHint.classList.remove('hidden');
+  editorContent.classList.add('hidden');
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  refreshImageList();
+});
+
+/* 屏幕图片编辑：鼠标 + 触摸双支持 */
+function imgStart(e) {
+  const entry = getCurrentEntry();
+  if (!entry) return;
+  const pos = getCanvasMousePos(e);
+  if (isMouseOverImage(pos.x, pos.y, entry)) {
+    isDragging = true;
+    dragStartX = pos.x; dragStartY = pos.y;
+    imageStartX = entry.x; imageStartY = entry.y;
+  }
+}
+function imgMove(e) {
+  if (!isDragging) return;
+  const entry = getCurrentEntry();
+  if (!entry) return;
+  const pos = getCanvasMousePos(e);
+  entry.x = imageStartX + pos.x - dragStartX;
+  entry.y = imageStartY + pos.y - dragStartY;
+  drawCanvas(entry);
+}
+function imgEnd() { isDragging = false; }
+
+canvas.addEventListener('mousedown', imgStart);
+canvas.addEventListener('mousemove', imgMove);
+canvas.addEventListener('mouseup', imgEnd);
+canvas.addEventListener('mouseleave', imgEnd);
+
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    e.preventDefault();
+    imgStart(e.touches[0]);
+  }
+}, { passive: false });
+canvas.addEventListener('touchmove', (e) => {
+  if (isDragging && e.touches.length === 1) {
+    e.preventDefault();
+    imgMove(e.touches[0]);
+  }
+}, { passive: false });
+canvas.addEventListener('touchend', imgEnd);
+canvas.addEventListener('touchcancel', imgEnd);
+
+scaleSlider.addEventListener('input', () => {
+  const entry = getCurrentEntry();
+  if (!entry) return;
+  entry.scale = parseInt(scaleSlider.value) / 100;
+  scaleValue.textContent = Math.round(entry.scale * 100);
+  drawCanvas(entry);
+});
+document.getElementById('resetCurrentCanvas').addEventListener('click', () => {
+  const entry = getCurrentEntry();
+  if (!entry) return;
+  entry.scale = 1.0;
+  entry.x = (canvas.width - entry.img.width) / 2;
+  entry.y = (canvas.height - entry.img.height) / 2;
+  updateScaleUI(entry);
+  drawCanvas(entry);
+});
+
+function exportEntryToCanvas(entry) {
+  const w = 296, h = 240;
+  const tmp = document.createElement('canvas');
+  tmp.width = w; tmp.height = h;
+  const tctx = tmp.getContext('2d');
+  tctx.fillStyle = 'white';
+  tctx.fillRect(0, 0, w, h);
+  if (entry && entry.img) {
+    tctx.drawImage(entry.img, entry.x, entry.y, entry.img.width * entry.scale, entry.img.height * entry.scale);
+  }
+  return tmp;
+}
+
+btnExportAll.addEventListener('click', () => {
+  saveCurrentState();
+  if (!imageEntries.length) { showToast('没有图片'); return; }
+  imageEntries.forEach((entry, idx) => {
+    setTimeout(() => {
+      const tmp = exportEntryToCanvas(entry);
+      const link = document.createElement('a');
+      link.download = 'picture-' + (idx + 1) + '.jpg';
+      link.href = tmp.toDataURL('image/jpeg', 0.95);
+      link.click();
+    }, idx * 300);
+  });
+  showToast('✅ 正在批量导出 ' + imageEntries.length + ' 张图片...');
+});
+ctx.fillStyle = 'white';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+/* ============================================================
+ * 功能二：音乐文件编辑
+ * ============================================================ */
+const audioList = document.getElementById('audioList');
+const audioListEmpty = document.getElementById('audioListEmpty');
+const btnConvertAll = document.getElementById('btnConvertAll');
+const conversionProgress = document.getElementById('conversionProgress');
+let audioEntries = [];
+
+function refreshAudioList() {
+  audioList.innerHTML = '';
+  if (audioEntries.length === 0) {
+    audioList.appendChild(audioListEmpty);
+    audioListEmpty.classList.remove('hidden');
+    btnConvertAll.disabled = true;
+  } else {
+    audioListEmpty.classList.add('hidden');
+    btnConvertAll.disabled = false;
+    audioEntries.forEach(entry => {
+      const div = document.createElement('div');
+      div.className = 'audio-item flex items-center justify-between p-3 rounded-lg text-sm ' + (entry.converted ? 'completed' : '');
+      div.innerHTML = `<div class="flex items-center gap-2 flex-1 min-w-0"><span class="text-sm truncate">${entry.name}</span><span class="text-xs text-gray-400 flex-shrink-0">(${(entry.file.size / 1024 / 1024).toFixed(2)} MB)</span>${entry.converted ? '<span class="text-xs text-green-600 flex-shrink-0">✅ 已转换</span>' : ''}</div><button class="delete-audio text-red-400 text-xl leading-none flex-shrink-0 ml-2" data-id="${entry.id}">&times;</button>`;
+      div.querySelector('.delete-audio').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = audioEntries.findIndex(a => a.id === entry.id);
+        if (idx >= 0) audioEntries.splice(idx, 1);
+        refreshAudioList();
+      });
+      audioList.appendChild(div);
+    });
+  }
+}
+document.getElementById('btnAddAudios').addEventListener('click', () => document.getElementById('audioUploadBatch').click());
+document.getElementById('audioUploadBatch').addEventListener('change', function (e) {
+  if (e.target.files.length) {
+    Array.from(e.target.files).forEach(file => {
+      if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|m4a|ogg|flac|aac|wma)$/i)) return;
+      const id = Date.now() + Math.random();
+      audioEntries.push({ id, file, name: file.name, buffer: null, converted: false, blob: null });
+    });
+    refreshAudioList();
+    e.target.value = '';
+  }
+});
+document.getElementById('btnClearAudios').addEventListener('click', () => {
+  audioEntries = [];
+  refreshAudioList();
+});
+
+btnConvertAll.addEventListener('click', async () => {
+  if (!audioEntries.length) return;
+  conversionProgress.classList.remove('hidden');
+  btnConvertAll.disabled = true;
+  const sampleRate = parseInt(document.getElementById('sampleRateSelect').value);
+  for (let entry of audioEntries) {
+    if (entry.converted) continue;
+    try {
+      const actx = new AudioContext();
+      const ab = await entry.file.arrayBuffer();
+      const audioBuf = await actx.decodeAudioData(ab);
+      const wavBlob = await convertAudioToWav(audioBuf, sampleRate);
+      entry.blob = wavBlob;
+      entry.converted = true;
+      refreshAudioList();
+    } catch (err) { console.error(err); }
+  }
+  conversionProgress.classList.add('hidden');
+  btnConvertAll.disabled = false;
+  const converted = audioEntries.filter(e => e.converted && e.blob);
+  if (!converted.length) { showToast('⚠️ 转换失败'); return; }
+  showToast('✅ 正在下载...');
+  converted.forEach((entry, idx) => setTimeout(() => { saveAs(entry.blob, 'music-' + (idx + 1) + '.wav'); }, idx * 400));
+  setTimeout(() => { audioEntries = []; refreshAudioList(); }, converted.length * 400 + 500);
+});
+
+function convertAudioToWav(audioBuffer, targetSampleRate = 44100) {
+  return new Promise((resolve, reject) => {
+    const targetChannels = 1;
+    const sr = targetSampleRate / audioBuffer.sampleRate;
+    const nl = Math.round(audioBuffer.length * sr);
+    const off = new OfflineAudioContext({ numberOfChannels: targetChannels, length: nl, sampleRate: targetSampleRate });
+    let sb = audioBuffer;
+    if (audioBuffer.numberOfChannels > 1) sb = convertStereoToMono(audioBuffer);
+    const src = off.createBufferSource();
+    src.buffer = sb;
+    src.connect(off.destination);
+    src.start();
+    off.startRendering().then(rb => {
+      const inter = interleaveChannels(rb);
+      const dv = encodeWav(inter, targetSampleRate, targetChannels);
+      resolve(new Blob([dv], { type: 'audio/wav' }));
+    }).catch(reject);
+  });
+}
+function convertStereoToMono(buf) {
+  const actx = new AudioContext();
+  const mono = actx.createBuffer(1, buf.length, buf.sampleRate);
+  const md = mono.getChannelData(0);
+  const l = buf.getChannelData(0), r = buf.getChannelData(1);
+  for (let i = 0; i < buf.length; i++) md[i] = Math.max(-1, Math.min(1, (l[i] + r[i]) / 2));
+  return mono;
+}
+function interleaveChannels(buf) {
+  const ch = buf.numberOfChannels, len = buf.length;
+  const res = new Float32Array(len * ch);
+  let idx = 0;
+  for (let i = 0; i < len; i++) for (let c = 0; c < ch; c++) res[idx++] = buf.getChannelData(c)[i];
+  return res;
+}
+function encodeWav(samples, sr, ch) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  writeStr(v, 0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true);
+  writeStr(v, 8, 'WAVE'); writeStr(v, 12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true);
+  v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+  writeStr(v, 36, 'data'); v.setUint32(40, samples.length * 2, true);
+  floatTo16(v, 44, samples);
+  return v;
+}
+function writeStr(v, o, s) { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+function floatTo16(out, off, inp) {
+  for (let i = 0; i < inp.length; i++, off += 2) {
+    const s = Math.max(-1, Math.min(1, inp[i]));
+    out.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+}
+
+/* ============================================================
+ * 功能三：相框与黑胶唱片
+ * ============================================================ */
+(function () {
+  const DISPLAY_WIDTH = 750;
+  const DISPLAY_HEIGHT = Math.round(DISPLAY_WIDTH * 210 / 297);
+  const DPR = 2;
+  // 手机内存有限，导出倍率从 8 降到 4（3000×2120，A4 约 256dpi，打印足够）
+  const EXPORT_SCALE = 4;
+  const SNAP_THRESHOLD = 8;
+
+  function createMask(wMm, hMm, count = 1, gapMm = 0) {
+    const w = Math.round(DISPLAY_WIDTH * wMm / 297);
+    const h = Math.round(DISPLAY_HEIGHT * hMm / 210);
+    if (count === 1) return [{ x: (DISPLAY_WIDTH - w) / 2, y: (DISPLAY_HEIGHT - h) / 2, w, h }];
+    const gap = Math.round(DISPLAY_WIDTH * gapMm / 297);
+    const totalW = count * w + (count - 1) * gap;
+    const startX = (DISPLAY_WIDTH - totalW) / 2;
+    const masks = [];
+    for (let i = 0; i < count; i++) masks.push({ x: startX + i * (w + gap), y: (DISPLAY_HEIGHT - h) / 2, w, h });
+    return masks;
+  }
+
+  class ImageEditor {
+    constructor(canvasId, wrapperId, masks) {
+      this.canvas = document.getElementById(canvasId);
+      this.wrapper = document.getElementById(wrapperId);
+      this.masks = masks;
+      this.layers = [];
+      this.selectedIndex = -1;
+      this.activeMaskIndex = 0;
+      this.dragging = false;
+      this.dragStart = { x: 0, y: 0 };
+      this.dragStartLayer = null;
+      this.dragStartHandle = null;
+      // 双指缩放
+      this.pinching = false;
+      this.pinchStartDist = 0;
+      this.pinchStartCenter = { x: 0, y: 0 };
+      this.pinchStartLayer = null;
+      this.initCanvas();
+      this.bindEvents();
+    }
+
+    initCanvas() {
+      this.canvas.width = DISPLAY_WIDTH * DPR;
+      this.canvas.height = DISPLAY_HEIGHT * DPR;
+      // 不设置 style.width/height，由 CSS 响应式控制
+      this.draw();
+    }
+
+    // 从鼠标或触摸事件换算逻辑坐标
+    getCanvasPos(e) {
+      const rect = this.canvas.getBoundingClientRect();
+      const cx = e.clientX != null ? e.clientX : e.touches[0].clientX;
+      const cy = e.clientY != null ? e.clientY : e.touches[0].clientY;
+      return {
+        x: (cx - rect.left) * DISPLAY_WIDTH / rect.width,
+        y: (cy - rect.top) * DISPLAY_HEIGHT / rect.height
+      };
+    }
+
+    addImage(img, maskIndex = this.activeMaskIndex) {
+      if (maskIndex >= this.masks.length) return;
+      this.activeMaskIndex = maskIndex;
+      const mask = this.masks[maskIndex];
+      const scale = Math.min(mask.w / img.width, mask.h / img.height, 1);
+      const w = img.width * scale, h = img.height * scale;
+      this.layers.push({
+        img,
+        x: mask.x + (mask.w - w) / 2,
+        y: mask.y + (mask.h - h) / 2,
+        w, h,
+        srcX: 0, srcY: 0,
+        srcW: img.width, srcH: img.height,
+        maskIndex
+      });
+      this.selectedIndex = this.layers.length - 1;
+      this.draw();
+    }
+
+    deleteSelected() {
+      if (this.selectedIndex >= 0) {
+        this.layers.splice(this.selectedIndex, 1);
+        this.selectedIndex = Math.min(this.selectedIndex, this.layers.length - 1);
+        this.draw();
+      }
+    }
+
+    // 手柄命中（放大触摸区域）
+    getHandleUnderMouse(pos) {
+      if (this.selectedIndex < 0) return null;
+      const l = this.layers[this.selectedIndex];
+      const { x, y, w, h } = l;
+      // 手机上手指粗，触摸区域扩大到 24 逻辑像素
+      const T = 24;
+      const handles = [
+        { name: 'nw', x, y },
+        { name: 'n', x: x + w / 2, y },
+        { name: 'ne', x: x + w, y },
+        { name: 'e', x: x + w, y: y + h / 2 },
+        { name: 'se', x: x + w, y: y + h },
+        { name: 's', x: x + w / 2, y: y + h },
+        { name: 'sw', x, y: y + h },
+        { name: 'w', x, y: y + h / 2 }
+      ];
+      for (let hd of handles) {
+        if (Math.abs(pos.x - hd.x) <= T && Math.abs(pos.y - hd.y) <= T) return hd.name;
+      }
+      if (pos.x >= x && pos.x <= x + w && pos.y >= y && pos.y <= y + h) return 'move';
+      return null;
+    }
+
+    applySnap(rect, excludeIndex) {
+      let snapX = rect.x, snapY = rect.y;
+      const targets = [];
+      this.masks.forEach(m => {
+        targets.push({ x: m.x, t: 'x' }, { x: m.x + m.w, t: 'x' }, { y: m.y, t: 'y' }, { y: m.y + m.h, t: 'y' });
+      });
+      this.layers.forEach((l, i) => {
+        if (i === excludeIndex) return;
+        targets.push({ x: l.x, t: 'x' }, { x: l.x + l.w, t: 'x' }, { y: l.y, t: 'y' }, { y: l.y + l.h, t: 'y' });
+      });
+      const e = { l: rect.x, r: rect.x + rect.w, t: rect.y, b: rect.y + rect.h };
+      targets.forEach(t => {
+        if (t.t === 'x' && t.x !== undefined) {
+          if (Math.abs(e.l - t.x) < SNAP_THRESHOLD) snapX = t.x;
+          if (Math.abs(e.r - t.x) < SNAP_THRESHOLD) snapX = t.x - rect.w;
+        }
+        if (t.t === 'y' && t.y !== undefined) {
+          if (Math.abs(e.t - t.y) < SNAP_THRESHOLD) snapY = t.y;
+          if (Math.abs(e.b - t.y) < SNAP_THRESHOLD) snapY = t.y - rect.h;
+        }
+      });
+      return { x: snapX, y: snapY };
+    }
+
+    draw() {
+      const c = this.canvas.getContext('2d');
+      const cw = this.canvas.width, ch = this.canvas.height;
+      const sx = cw / DISPLAY_WIDTH, sy = ch / DISPLAY_HEIGHT;
+      c.clearRect(0, 0, cw, ch);
+      c.fillStyle = '#fff';
+      c.fillRect(0, 0, cw, ch);
+
+      this.masks.forEach((mask, mIdx) => {
+        c.save();
+        c.beginPath();
+        c.rect(mask.x * sx, mask.y * sy, mask.w * sx, mask.h * sy);
+        c.clip();
+        this.layers.forEach(layer => {
+          if (layer.maskIndex !== mIdx) return;
+          c.drawImage(layer.img, layer.srcX, layer.srcY, layer.srcW, layer.srcH,
+            layer.x * sx, layer.y * sy, layer.w * sx, layer.h * sy);
+        });
+        c.restore();
+        c.strokeStyle = (mIdx === this.activeMaskIndex) ? '#ff4081' : '#4f6ef7';
+        c.lineWidth = (mIdx === this.activeMaskIndex) ? 3 * sx : 2.5 * sx;
+        c.strokeRect(mask.x * sx, mask.y * sy, mask.w * sx, mask.h * sy);
+      });
+
+      if (this.selectedIndex >= 0) {
+        const l = this.layers[this.selectedIndex];
+        c.strokeStyle = '#ff4081';
+        c.lineWidth = 2 * sx;
+        c.setLineDash([5 * sx, 3 * sx]);
+        c.strokeRect(l.x * sx, l.y * sy, l.w * sx, l.h * sy);
+        c.setLineDash([]);
+        const handles = [
+          { x: l.x, y: l.y }, { x: l.x + l.w / 2, y: l.y }, { x: l.x + l.w, y: l.y },
+          { x: l.x + l.w, y: l.y + l.h / 2 }, { x: l.x + l.w, y: l.y + l.h },
+          { x: l.x + l.w / 2, y: l.y + l.h }, { x: l.x, y: l.y + l.h },
+          { x: l.x, y: l.y + l.h / 2 }
+        ];
+        const SIZE = 8 * sx;
+        handles.forEach(h => {
+          c.fillStyle = '#fff';
+          c.fillRect(h.x * sx - SIZE, h.y * sy - SIZE, SIZE * 2, SIZE * 2);
+          c.strokeStyle = '#ff4081';
+          c.lineWidth = 2 * sx;
+          c.strokeRect(h.x * sx - SIZE, h.y * sy - SIZE, SIZE * 2, SIZE * 2);
+        });
+      }
+    }
+
+    /* ---------- 指针按下：统一处理鼠标和触摸 ---------- */
+    handlePointerDown(pos) {
+      // 1. 检查手柄
+      if (this.selectedIndex >= 0) {
+        const handle = this.getHandleUnderMouse(pos);
+        if (handle) {
+          this.dragging = true;
+          this.dragStart = { x: pos.x, y: pos.y };
+          this.dragStartLayer = { ...this.layers[this.selectedIndex] };
+          this.dragStartHandle = handle;
+          return;
+        }
+      }
+      // 2. 检查图层
+      for (let i = this.layers.length - 1; i >= 0; i--) {
+        const l = this.layers[i];
+        if (pos.x >= l.x && pos.x <= l.x + l.w && pos.y >= l.y && pos.y <= l.y + l.h) {
+          this.selectedIndex = i;
+          this.activeMaskIndex = l.maskIndex;
+          this.draw();
+          return;
+        }
+      }
+      // 3. 检查蒙版（多蒙版时）
+      if (this.masks.length > 1) {
+        for (let i = 0; i < this.masks.length; i++) {
+          const m = this.masks[i];
+          if (pos.x >= m.x && pos.x <= m.x + m.w && pos.y >= m.y && pos.y <= m.y + m.h) {
+            this.activeMaskIndex = i;
+            this.selectedIndex = -1;
+            this.draw();
+            return;
+          }
+        }
+      }
+      this.selectedIndex = -1;
+      this.draw();
+    }
+
+    handlePointerMove(pos) {
+      if (!this.dragging || this.selectedIndex < 0) return;
+      const layer = this.layers[this.selectedIndex];
+      const dx = pos.x - this.dragStart.x;
+      const dy = pos.y - this.dragStart.y;
+      const base = this.dragStartLayer;
+      const handle = this.dragStartHandle;
+
+      if (handle === 'move') {
+        layer.x = base.x + dx;
+        layer.y = base.y + dy;
+        const sn = this.applySnap({ x: layer.x, y: layer.y, w: layer.w, h: layer.h }, this.selectedIndex);
+        layer.x = sn.x;
+        layer.y = sn.y;
+      } else if (['nw', 'ne', 'se', 'sw'].includes(handle)) {
+        const cx = base.x + base.w / 2;
+        const cy = base.y + base.h / 2;
+        const asp = base.srcW / base.srcH;
+        let nw, nh;
+        if (handle === 'se') { nw = Math.max(1, base.w + dx); nh = nw / asp; }
+        else if (handle === 'nw') { nw = Math.max(1, base.w - dx); nh = nw / asp; }
+        else if (handle === 'ne') { nw = Math.max(1, base.w + dx); nh = nw / asp; }
+        else { nw = Math.max(1, base.w - dx); nh = nw / asp; }
+        layer.w = nw; layer.h = nh;
+        layer.x = cx - nw / 2;
+        layer.y = cy - nh / 2;
+      } else {
+        if (handle === 'e') {
+          layer.w = Math.max(1, base.w + dx); layer.x = base.x;
+          layer.y = base.y; layer.h = base.h;
+          const sx2 = layer.w / base.w;
+          layer.srcW = base.srcW * sx2; layer.srcX = base.srcX;
+          layer.srcY = base.srcY; layer.srcH = base.srcH;
+        } else if (handle === 'w') {
+          const nw2 = Math.max(1, base.w - dx);
+          const r = base.x + base.w;
+          layer.w = nw2; layer.x = r - nw2;
+          layer.y = base.y; layer.h = base.h;
+          const sx2 = nw2 / base.w;
+          layer.srcW = base.srcW * sx2;
+          layer.srcX = base.srcX + base.srcW - layer.srcW;
+          layer.srcY = base.srcY; layer.srcH = base.srcH;
+        } else if (handle === 's') {
+          layer.h = Math.max(1, base.h + dy); layer.y = base.y;
+          layer.x = base.x; layer.w = base.w;
+          const sy2 = layer.h / base.h;
+          layer.srcH = base.srcH * sy2; layer.srcY = base.srcY;
+          layer.srcX = base.srcX; layer.srcW = base.srcW;
+        } else {
+          const nh2 = Math.max(1, base.h - dy);
+          const b = base.y + base.h;
+          layer.h = nh2; layer.y = b - nh2;
+          layer.x = base.x; layer.w = base.w;
+          const sy2 = nh2 / base.h;
+          layer.srcH = base.srcH * sy2;
+          layer.srcY = base.srcY + base.srcH - layer.srcH;
+          layer.srcX = base.srcX; layer.srcW = base.srcW;
+        }
+      }
+      this.draw();
+    }
+
+    /* ---------- 事件绑定 ---------- */
+    bindEvents() {
+      // 鼠标（PC）
+      this.canvas.addEventListener('mousedown', e => {
+        e.preventDefault();
+        this.handlePointerDown(this.getCanvasPos(e));
+      });
+      window.addEventListener('mousemove', e => {
+        if (!this.dragging || this.selectedIndex < 0) return;
+        this.handlePointerMove(this.getCanvasPos(e));
+      });
+      window.addEventListener('mouseup', () => { this.dragging = false; });
+
+      // 触摸（手机）
+      this.canvas.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+          this.handlePointerDown(this.getCanvasPos(e));
+        } else if (e.touches.length === 2) {
+          // 双指缩放
+          this.pinching = true;
+          const p0 = this.getCanvasPos(e.touches[0]);
+          const p1 = this.getCanvasPos(e.touches[1]);
+          this.pinchStartDist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          this.pinchStartCenter = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
+          if (this.selectedIndex >= 0) {
+            const l = this.layers[this.selectedIndex];
+            this.pinchStartLayer = { x: l.x, y: l.y, w: l.w, h: l.h };
+          } else {
+            this.pinchStartLayer = null;
+          }
+        }
+      }, { passive: false });
+
+      this.canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (this.pinching && e.touches.length === 2 && this.selectedIndex >= 0 && this.pinchStartLayer) {
+          const p0 = this.getCanvasPos(e.touches[0]);
+          const p1 = this.getCanvasPos(e.touches[1]);
+          const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          const ratio = dist / this.pinchStartDist;
+          const base = this.pinchStartLayer;
+          const l = this.layers[this.selectedIndex];
+          const newW = Math.max(20, base.w * ratio);
+          const newH = Math.max(20, base.h * ratio);
+          // 以 pinch 中心为锚点缩放
+          const c = this.pinchStartCenter;
+          const rx = (c.x - base.x) / base.w;
+          const ry = (c.y - base.y) / base.h;
+          l.w = newW;
+          l.h = newH;
+          l.x = c.x - rx * newW;
+          l.y = c.y - ry * newH;
+          this.draw();
+        } else if (this.dragging && e.touches.length === 1) {
+          this.handlePointerMove(this.getCanvasPos(e));
+        }
+      }, { passive: false });
+
+      const endTouch = (e) => {
+        if (e.touches.length === 0) {
+          this.dragging = false;
+          this.pinching = false;
+          this.pinchStartLayer = null;
+        } else if (e.touches.length === 1 && this.pinching) {
+          // 从双指变回单指，结束缩放，重新进入拖动模式
+          this.pinching = false;
+          this.pinchStartLayer = null;
+          this.dragging = false; // 用户需重新按下才会拖动
+        }
+      };
+      this.canvas.addEventListener('touchend', endTouch);
+      this.canvas.addEventListener('touchcancel', endTouch);
+
+      // 滚轮缩放（PC）
+      this.canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        if (this.selectedIndex >= 0 && !this.dragging) {
+          const l = this.layers[this.selectedIndex];
+          const sf = e.deltaY > 0 ? 1 / 1.05 : 1.05;
+          const nw = l.w * sf, nh = l.h * sf;
+          if (nw < 1 || nh < 1) return;
+          const cx = l.x + l.w / 2, cy = l.y + l.h / 2;
+          l.w = nw; l.h = nh;
+          l.x = cx - nw / 2; l.y = cy - nh / 2;
+          this.draw();
+        }
+      }, { passive: false });
+    }
+
+    exportCanvas() {
+      const ew = DISPLAY_WIDTH * EXPORT_SCALE;
+      const eh = DISPLAY_HEIGHT * EXPORT_SCALE;
+      const ec = document.createElement('canvas');
+      ec.width = ew; ec.height = eh;
+      const cx = ec.getContext('2d');
+      cx.fillStyle = '#fff';
+      cx.fillRect(0, 0, ew, eh);
+      this.masks.forEach((mask, mIdx) => {
+        cx.save();
+        cx.beginPath();
+        cx.rect(mask.x * EXPORT_SCALE, mask.y * EXPORT_SCALE, mask.w * EXPORT_SCALE, mask.h * EXPORT_SCALE);
+        cx.clip();
+        this.layers.forEach(layer => {
+          if (layer.maskIndex !== mIdx) return;
+          cx.drawImage(layer.img, layer.srcX, layer.srcY, layer.srcW, layer.srcH,
+            layer.x * EXPORT_SCALE, layer.y * EXPORT_SCALE,
+            layer.w * EXPORT_SCALE, layer.h * EXPORT_SCALE);
+        });
+        cx.restore();
+      });
+      return ec;
+    }
+  }
+
+  const editorA = new ImageEditor('canvasA', 'wrapperA', createMask(248, 200, 1));
+  const editorB = new ImageEditor('canvasB', 'wrapperB', createMask(248, 200, 1));
+  const editorC = new ImageEditor('canvasC', 'wrapperC', createMask(80, 195, 2, 10));
+
+  function setupUpload(btnId, inputId, editor, maskIdx = 0) {
+    document.getElementById(btnId).addEventListener('click', () => document.getElementById(inputId).click());
+    document.getElementById(inputId).addEventListener('change', function (e) {
+      if (!e.target.files.length) return;
+      Array.from(e.target.files).forEach(f => {
+        if (!f.type.startsWith('image/')) return;
+        const r = new FileReader();
+        r.onload = ev => {
+          const i = new Image();
+          i.onload = () => editor.addImage(i, maskIdx);
+          i.src = ev.target.result;
+        };
+        r.readAsDataURL(f);
+      });
+      e.target.value = '';
+    });
+  }
+  setupUpload('btnUploadA', 'uploadA', editorA);
+  setupUpload('btnUploadB', 'uploadB', editorB);
+  setupUpload('btnUploadCLeft', 'uploadC_left', editorC, 0);
+  setupUpload('btnUploadCRight', 'uploadC_right', editorC, 1);
+  document.getElementById('btnDeleteA').addEventListener('click', () => editorA.deleteSelected());
+  document.getElementById('btnDeleteB').addEventListener('click', () => editorB.deleteSelected());
+  document.getElementById('btnDeleteC').addEventListener('click', () => editorC.deleteSelected());
+
+  /* ============================================================
+   * 黑胶唱片
+   * ============================================================ */
+  const CIRCLE_DIAMETER = Math.round(DISPLAY_WIDTH * 40 / 297);
+  const CIRCLE_RADIUS = CIRCLE_DIAMETER / 2;
+  const COLS = 6, ROWS = 4, TOTAL = 24;
+  const circlePos = (() => {
+    const p = [];
+    const tw = COLS * CIRCLE_DIAMETER, th = ROWS * CIRCLE_DIAMETER;
+    const gh = (DISPLAY_WIDTH - tw) / (COLS + 1);
+    const gv = (DISPLAY_HEIGHT - th) / (ROWS + 1);
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        p.push({
+          cx: gh + CIRCLE_RADIUS + c * (CIRCLE_DIAMETER + gh),
+          cy: gv + CIRCLE_RADIUS + r * (CIRCLE_DIAMETER + gv),
+          radius: CIRCLE_RADIUS
+        });
+      }
+    }
+    return p;
+  })();
+
+  const canvas2 = document.getElementById('canvas2');
+  const hiddenFile2 = document.getElementById('hiddenFileInput2');
+  const badgeFilled = document.getElementById('badgeFilled');
+  const btnReplace = document.getElementById('btnReplaceCircle');
+
+  let circleData = Array(TOTAL).fill().map(() => ({ img: null, ox: 0, oy: 0, scale: 1 }));
+  let selIdx = -1;
+  let vinylReady = false;
+  window.vinylReady = false;
+  let drag2 = false;
+  let ds2 = { x: 0, y: 0 };
+  let doff = { x: 0, y: 0 };
+  let lastTapTime = 0;
+
+  function draw2() {
+    if (!vinylReady) return;
+    const c2 = canvas2.getContext('2d');
+    const cw = canvas2.width, ch = canvas2.height;
+    const sx = cw / DISPLAY_WIDTH, sy = ch / DISPLAY_HEIGHT;
+    c2.clearRect(0, 0, cw, ch);
+    c2.fillStyle = '#fff';
+    c2.fillRect(0, 0, cw, ch);
+
+    circlePos.forEach((p, i) => {
+      const cx = p.cx * sx, cy = p.cy * sy, r = p.radius * sx;
+      c2.save();
+      c2.beginPath();
+      c2.arc(cx, cy, r, 0, Math.PI * 2);
+      c2.clip();
+      const d = circleData[i];
+      if (d.img) {
+        const dw = d.img.width * d.scale * sx;
+        const dh = d.img.height * d.scale * sy;
+        c2.drawImage(d.img, (p.cx + d.ox) * sx - dw / 2, (p.cy + d.oy) * sy - dh / 2, dw, dh);
+      } else {
+        c2.fillStyle = '#f5f6fa';
+        c2.fillRect(cx - r, cy - r, r * 2, r * 2);
+      }
+      c2.restore();
+
+      // 外圈
+      c2.beginPath();
+      c2.arc(cx, cy, r, 0, Math.PI * 2);
+      c2.strokeStyle = i === selIdx ? '#4f6ef7' : (d.img ? 'rgba(79,110,247,0.4)' : '#d5dae5');
+      c2.lineWidth = (i === selIdx ? 4 : 2) * sx;
+      c2.stroke();
+    });
+
+    const f = circleData.filter(d => d.img).length;
+    badgeFilled.textContent = `已填充: ${f}/24`;
+    badgeFilled.className = f === TOTAL ? 'badge warn' : 'badge';
+    btnReplace.disabled = selIdx < 0 || !circleData[selIdx] || !circleData[selIdx].img;
+  }
+
+  function initVinylCanvas() {
+    canvas2.width = DISPLAY_WIDTH * DPR;
+    canvas2.height = DISPLAY_HEIGHT * DPR;
+    vinylReady = true;
+    window.vinylReady = true;
+    draw2();
+  }
+  window.initVinylCanvas = initVinylCanvas;
+
+  function pos2(e) {
+    const r = canvas2.getBoundingClientRect();
+    const cx = e.clientX != null ? e.clientX : e.touches[0].clientX;
+    const cy = e.clientY != null ? e.clientY : e.touches[0].clientY;
+    return {
+      x: (cx - r.left) * DISPLAY_WIDTH / r.width,
+      y: (cy - r.top) * DISPLAY_HEIGHT / r.height
+    };
+  }
+  function idx2(p) {
+    for (let i = 0; i < circlePos.length; i++) {
+      if (Math.hypot(p.x - circlePos[i].cx, p.y - circlePos[i].cy) <= CIRCLE_RADIUS + 3) return i;
+    }
+    return -1;
+  }
+
+  /* ---------- 黑胶：鼠标支持（PC） ---------- */
+  canvas2.addEventListener('mousedown', e => {
+    const p = pos2(e), i = idx2(p);
+    if (i < 0) { selIdx = -1; draw2(); return; }
+    if (!circleData[i].img) {
+      selIdx = i;
+      hiddenFile2.value = '';
+      hiddenFile2.click();
+      draw2();
+      return;
+    }
+    if (selIdx !== i) { selIdx = i; draw2(); }
+    drag2 = true;
+    ds2 = { x: p.x, y: p.y };
+    doff = { x: circleData[i].ox, y: circleData[i].oy };
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!drag2 || selIdx < 0) return;
+    const p = pos2(e);
+    circleData[selIdx].ox = doff.x + p.x - ds2.x;
+    circleData[selIdx].oy = doff.y + p.y - ds2.y;
+    draw2();
+  });
+  window.addEventListener('mouseup', () => { drag2 = false; });
+  canvas2.addEventListener('dblclick', e => {
+    const i = idx2(pos2(e));
+    if (i >= 0 && circleData[i].img) {
+      selIdx = i;
+      hiddenFile2.value = '';
+      hiddenFile2.click();
+      draw2();
+    }
+  });
+
+  /* ---------- 黑胶：触摸支持（手机） ---------- */
+  canvas2.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const p = pos2(e.touches[0]);
+    const i = idx2(p);
+
+    if (i < 0) { selIdx = -1; draw2(); return; }
+
+    // 空圆：直接弹上传
+    if (!circleData[i].img) {
+      selIdx = i;
+      hiddenFile2.value = '';
+      hiddenFile2.click();
+      draw2();
+      return;
+    }
+
+    // 已填充圆：判断双击
+    const now = Date.now();
+    if (selIdx === i && now - lastTapTime < 320) {
+      // 双击替换
+      hiddenFile2.value = '';
+      hiddenFile2.click();
+      lastTapTime = 0;
+      return;
+    }
+    lastTapTime = now;
+
+    // 第一次点击：只选中
+    if (selIdx !== i) {
+      selIdx = i;
+      draw2();
+      return;
+    }
+    // 已选中：进入拖动模式
+    drag2 = true;
+    ds2 = { x: p.x, y: p.y };
+    doff = { x: circleData[i].ox, y: circleData[i].oy };
+  }, { passive: false });
+
+  canvas2.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!drag2 || selIdx < 0) return;
+    const p = pos2(e.touches[0]);
+    circleData[selIdx].ox = doff.x + p.x - ds2.x;
+    circleData[selIdx].oy = doff.y + p.y - ds2.y;
+    draw2();
+  }, { passive: false });
+
+  canvas2.addEventListener('touchend', () => { drag2 = false; });
+  canvas2.addEventListener('touchcancel', () => { drag2 = false; });
+
+  btnReplace.addEventListener('click', () => {
+    if (selIdx >= 0 && circleData[selIdx] && circleData[selIdx].img) {
+      hiddenFile2.value = '';
+      hiddenFile2.click();
+    }
+  });
+
+  hiddenFile2.addEventListener('change', function () {
+    if (this.files[0] && selIdx >= 0) {
+      const r = new FileReader();
+      r.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+          const s = Math.max((2 * CIRCLE_RADIUS) / img.width, (2 * CIRCLE_RADIUS) / img.height);
+          circleData[selIdx] = { img, ox: 0, oy: 0, scale: s };
+          draw2();
+        };
+        img.src = ev.target.result;
+      };
+      r.readAsDataURL(this.files[0]);
+    }
+  });
+
+  document.getElementById('btnClearAll2').addEventListener('click', () => {
+    circleData = Array(TOTAL).fill().map(() => ({ img: null, ox: 0, oy: 0, scale: 1 }));
+    selIdx = -1;
+    draw2();
+  });
+
+  /* ============================================================
+   * 导出 PDF：两个按钮
+   * ============================================================ */
+  function makeVinylExportCanvas() {
+    const vc = document.createElement('canvas');
+    vc.width = DISPLAY_WIDTH * EXPORT_SCALE;
+    vc.height = DISPLAY_HEIGHT * EXPORT_SCALE;
+    const vctx = vc.getContext('2d');
+    vctx.fillStyle = '#fff';
+    vctx.fillRect(0, 0, vc.width, vc.height);
+    circlePos.forEach((p, i) => {
+      const cx = p.cx * EXPORT_SCALE;
+      const cy = p.cy * EXPORT_SCALE;
+      const r = p.radius * EXPORT_SCALE;
+      vctx.save();
+      vctx.beginPath();
+      vctx.arc(cx, cy, r, 0, Math.PI * 2);
+      vctx.clip();
+      const d = circleData[i];
+      if (d.img) {
+        const dw = d.img.width * d.scale * EXPORT_SCALE;
+        const dh = d.img.height * d.scale * EXPORT_SCALE;
+        vctx.drawImage(d.img, (p.cx + d.ox) * EXPORT_SCALE - dw / 2, (p.cy + d.oy) * EXPORT_SCALE - dh / 2, dw, dh);
+      }
+      vctx.restore();
+    });
+    return vc;
+  }
+
+  // 导出按钮1：相框正面 + 背面
+  document.getElementById('btnExportPDF1').addEventListener('click', () => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const width = 297, height = 210;
+
+      // 第 1 页：相框正面
+      let imgData = editorA.exportCanvas().toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
+
+      // 第 2 页：相框背面
+      imgData = editorB.exportCanvas().toDataURL('image/jpeg', 0.95);
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
+
+      pdf.save('相框正反面.pdf');
+      showToast('✅ PDF已导出，共2页');
+    } catch (err) {
+      console.error(err);
+      showToast('❌ 导出失败：' + (err.message || '未知错误'), 3000);
+    }
+  });
+
+  // 导出按钮2：相框内侧 + 黑胶唱片
+  document.getElementById('btnExportPDF2').addEventListener('click', () => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const width = 297, height = 210;
+
+      // 第 1 页：相框内侧
+      let imgData = editorC.exportCanvas().toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
+
+      // 第 2 页：黑胶唱片
+      imgData = makeVinylExportCanvas().toDataURL('image/jpeg', 0.95);
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
+
+      pdf.save('侧边与唱片.pdf');
+      showToast('✅ PDF已导出，共2页');
+    } catch (err) {
+      console.error(err);
+      showToast('❌ 导出失败：' + (err.message || '未知错误'), 3000);
+    }
+  });
+
+  /* 进入选项卡2时自动初始化 vinyl canvas */
+  const tab2 = document.querySelector('[data-content="2"]');
+  const observer = new MutationObserver(() => {
+    if (tab2.classList.contains('active') && !vinylReady) initVinylCanvas();
+  });
+  observer.observe(tab2, { attributes: true, attributeFilter: ['class'] });
+  if (tab2.classList.contains('active') && !vinylReady) initVinylCanvas();
+})();
+</script>
+</body>
+</html>
