@@ -13,7 +13,6 @@
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
-  /* ============ 选项卡 ============ */
   .tabs-wrap {
     display: flex; flex-wrap: wrap; gap: 4px;
     justify-content: center; margin-bottom: 20px;
@@ -29,10 +28,36 @@
     border-bottom: 2px solid #2563eb;
   }
 
-  /* ============ 通用按钮适配（手指） ============ */
   button { touch-action: manipulation; min-height: 40px; }
 
-  /* ============ 屏幕图片编辑 canvas ============ */
+  .alert-banner {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    border: 2px solid #f43f5e;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    text-align: center;
+    color: #9f1239;
+    font-size: 15px;
+    line-height: 1.7;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.15);
+    animation: alertPulse 2s ease-in-out infinite;
+  }
+  .alert-banner .big-num {
+    display: inline-block;
+    background: #f43f5e;
+    color: #fff;
+    padding: 1px 10px;
+    border-radius: 8px;
+    font-size: 17px;
+    margin: 0 3px;
+  }
+  @keyframes alertPulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(244, 63, 94, 0.15); }
+    50% { box-shadow: 0 4px 20px rgba(244, 63, 94, 0.4); }
+  }
+
   .canvas-container {
     position: relative;
     width: 100%;
@@ -63,7 +88,6 @@
   .audio-item { transition: all 0.15s; border: 1px solid #e5e7eb; }
   .audio-item.completed { border-color: #86efac; background: #f0fdf4; }
 
-  /* ============ 相框工具 ============ */
   #frameToolContainer {
     --accent: #4f6ef7;
     --bg: #f0f2f5;
@@ -120,7 +144,6 @@
     -webkit-user-select: none;
   }
 
-  /* 按钮 */
   .btn {
     padding: 10px 16px;
     border-radius: 22px;
@@ -160,13 +183,6 @@
 
   .upload-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-  /* ============ 导出按钮区 ============ */
-  .export-area {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
   .export-btn {
     padding: 16px 20px;
     font-size: 16px;
@@ -178,6 +194,8 @@
     cursor: pointer;
     touch-action: manipulation;
     box-shadow: 0 2px 8px rgba(22,163,74,0.25);
+    width: 100%;
+    margin-top: 8px;
   }
   .export-btn:active { background: #15803d; }
   .export-btn.secondary {
@@ -185,8 +203,174 @@
     box-shadow: 0 2px 8px rgba(37,99,235,0.25);
   }
   .export-btn.secondary:active { background: #1d4ed8; }
+  .export-btn.info {
+    background: #9333ea;
+    box-shadow: 0 2px 8px rgba(147,51,234,0.25);
+    margin-top: 14px;
+  }
+  .export-btn.info:active { background: #7e22ce; }
 
-  /* Toast */
+  .zip-btn {
+    padding: 14px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    background: #9333ea;
+    color: #fff;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 2px 8px rgba(147,51,234,0.25);
+    width: 100%;
+    margin-top: 10px;
+  }
+  .zip-btn:active { background: #7e22ce; }
+  .zip-btn:disabled {
+    background: #d1d5db;
+    color: #9ca3af;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .info-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #e2e6ef;
+  }
+  .info-form { display: flex; flex-direction: column; gap: 12px; }
+  .form-row { display: flex; flex-direction: column; gap: 6px; }
+  .form-row label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    padding-left: 2px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 15px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #1a1a2e;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    min-height: 42px;
+  }
+  .form-input:focus { border-color: #9333ea; box-shadow: 0 0 0 3px rgba(147,51,234,0.1); }
+  .form-input[readonly] {
+    background: #f1f5f9;
+    color: #475569;
+    cursor: not-allowed;
+  }
+  textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
+
+  .info-hint {
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+    padding: 6px 0;
+    line-height: 1.5;
+  }
+
+  .info-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #9333ea;
+    padding: 6px 0 2px;
+    border-bottom: 1px dashed #e2e6ef;
+    margin-top: 4px;
+  }
+
+  .section-desc {
+    font-size: 13px;
+    color: #64748b;
+    background: #f8fafc;
+    border-left: 3px solid #9333ea;
+    padding: 8px 12px;
+    border-radius: 4px;
+    line-height: 1.6;
+    margin-top: 2px;
+  }
+
+  /* 发货方式单选卡片 */
+  .radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    touch-action: manipulation;
+  }
+  .radio-option:active { background: #f8fafc; }
+  .radio-option.selected {
+    border-color: #9333ea;
+    background: #faf5ff;
+    box-shadow: 0 0 0 3px rgba(147,51,234,0.1);
+  }
+  .radio-option input[type="radio"] {
+    margin-top: 2px;
+    width: 18px;
+    height: 18px;
+    accent-color: #9333ea;
+    flex-shrink: 0;
+  }
+  .radio-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .radio-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+  }
+  .radio-desc {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
+  }
+
+  /* 赠送内容卡片 */
+  .gift-box {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px dashed #f59e0b;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 4px;
+  }
+  .gift-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gift-content {
+    font-size: 13.5px;
+    color: #78350f;
+    line-height: 1.8;
+  }
+  .gift-content strong {
+    color: #92400e;
+    font-weight: 700;
+  }
+
   .toast {
     position: fixed;
     bottom: 40px;
@@ -210,7 +394,6 @@
   .scrollbar-thin::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
 
-  /* ============ 手机端布局微调 ============ */
   @media (max-width: 640px) {
     body { font-size: 14px; }
     h1 { font-size: 22px !important; }
@@ -234,7 +417,7 @@
 
 <div class="max-w-7xl mx-auto px-3 py-6">
   <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-3">🐑 小羊的音乐相框综合工具</h1>
-  <p class="text-center text-gray-500 text-base mb-3">屏幕图片编辑 · 音乐文件编辑 · 相框照片和唱片图片定制</p>
+  <p class="text-center text-gray-500 text-base mb-3">屏幕图片编辑 · 音乐文件编辑 · 相框照片和唱片图片定制 · 定制信息填写</p>
   <p class="text-center text-black font-bold text-sm md:text-base mb-5 leading-relaxed px-2">
     💡 导出的图片和音频请通过电脑用读卡器拷贝到内存卡中命名为1‑9的文件夹内，其分别对应1‑9号的唱片，一个文件夹内至少需有一张图片和一个音频文件
   </p>
@@ -243,12 +426,20 @@
     <button class="tab-button active" data-tab="0">🖼️ 屏幕图片编辑</button>
     <button class="tab-button" data-tab="1">🎵 音乐文件编辑</button>
     <button class="tab-button" data-tab="2">📷 相框照片和唱片图片定制</button>
+    <button class="tab-button" data-tab="3">📝 定制信息填写</button>
   </div>
 
   <!-- ============ 选项卡0：屏幕图片编辑 ============ -->
   <div class="tab-content active bg-white p-4 rounded-lg shadow-md" data-content="0">
     <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-2">屏幕图片编辑（296×240 横屏编辑与导出）</h2>
-    <p class="text-gray-600 mb-2 text-center text-sm">上传图片，可调整其在屏幕显示的大小和位置，导出后复制到内存卡中1-9文件夹即可</p>
+
+    <div class="alert-banner">
+      ⚠️ 重要提示<br>
+      请上传至少 <span class="big-num">9</span> 张图片，分别分配到 <span class="big-num">9</span> 个唱片<br>
+      导出后复制到内存卡中 1~9 文件夹即可
+    </div>
+
+    <p class="text-gray-600 mb-2 text-center text-sm">上传图片，可调整其在屏幕显示的大小和位置</p>
     <p class="text-center text-orange-500 text-xs mb-4">⚠️ 提醒：导出的图片可用拼音重新命名，不能用中文命名，不然播放不了</p>
 
     <div class="flex flex-col lg:flex-row gap-4">
@@ -294,12 +485,11 @@
     <p class="text-gray-600 mb-2 text-center text-sm">上传 MP3、WAV、录音等，批量转换 WAV，下载后复制到内存卡对应1-9文件夹即可</p>
     <p class="text-center text-orange-500 text-xs mb-4">⚠️ 提醒：导出的音频可用拼音重新命名，不能用中文命名，不然播放不了</p>
 
-    <div class="flex items-center justify-center gap-3 mb-4">
-      <span class="font-semibold text-gray-700 text-sm">采样率：</span>
-      <select id="sampleRateSelect" class="border border-gray-300 rounded-lg px-4 py-2 text-base">
-        <option value="44100" selected>44.1kHz（高音质）</option>
-        <option value="22050">22.05kHz（文件更小）</option>
-      </select>
+    <input type="hidden" id="sampleRateSelect" value="22050">
+    <div class="flex items-center justify-center gap-2 mb-4">
+      <span class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 font-semibold text-sm">
+        🎚️ 输出采样率：22.05kHz
+      </span>
     </div>
 
     <div class="flex flex-col lg:flex-row gap-4">
@@ -316,13 +506,15 @@
           <p id="audioListEmpty" class="text-gray-400 text-sm text-center py-8">暂无音频文件，请添加</p>
         </div>
         <button id="btnConvertAll" class="w-full mt-3 px-4 py-3 bg-green-600 text-white text-base rounded active:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>批量转换并下载全部</button>
+        <button id="btnExportAudioZip" class="zip-btn" disabled>📦 打包导出为 ZIP</button>
         <div id="conversionProgress" class="text-center text-gray-600 text-sm mt-3 hidden">正在转换，请稍候...</div>
       </div>
       <div class="flex-1 flex items-center justify-center">
         <div class="text-center text-gray-500 text-sm">
           <p class="text-lg mb-2">📁 支持批量上传</p>
           <p>支持 MP3、WAV、录音等格式</p>
-          <p>可转换为 44.1kHz 或 22.05kHz WAV</p>
+          <p>统一转换为 22.05kHz WAV</p>
+          <p class="mt-2 text-gray-400 text-xs">逐个下载 或 打包为一个 zip 下载</p>
         </div>
       </div>
     </div>
@@ -337,7 +529,6 @@
       </div>
 
       <div class="canvas-panels">
-        <!-- 相框正面 -->
         <div class="canvas-card">
           <div class="card-header">
             <span class="title">📋 相框内正面图</span>
@@ -350,7 +541,6 @@
           <div class="canvas-wrapper" id="wrapperA"><canvas id="canvasA"></canvas></div>
         </div>
 
-        <!-- 相框背面 -->
         <div class="canvas-card">
           <div class="card-header">
             <span class="title">📋 相框背面图</span>
@@ -361,9 +551,12 @@
             </div>
           </div>
           <div class="canvas-wrapper" id="wrapperB"><canvas id="canvasB"></canvas></div>
+
+          <button id="btnExportPDF1" class="export-btn">
+            📄 导出「相框正反面」PDF（2页）
+          </button>
         </div>
 
-        <!-- 相框内侧边图 -->
         <div class="canvas-card">
           <div class="card-header">
             <span class="title">📋 相框内侧边图 · 两条竖向</span>
@@ -378,7 +571,6 @@
           <div class="canvas-wrapper" id="wrapperC"><canvas id="canvasC"></canvas></div>
         </div>
 
-        <!-- 黑胶唱片 -->
         <div class="canvas-card">
           <span class="title" style="align-self:flex-start;font-weight:600;font-size:16px;">🔵 黑胶唱片定制</span>
           <p style="font-size:13px;color:#5a5a7a;margin:-4px 0 4px;">可定制24张黑胶唱片</p>
@@ -393,17 +585,122 @@
             选中后再拖动移动 · 双击替换
           </div>
           <input type="file" id="hiddenFileInput2" accept="image/*" style="display:none;">
+
+          <button id="btnExportPDF2" class="export-btn secondary">
+            📄 导出「侧边+唱片」PDF（2页）
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 选项卡3：定制信息填写 ============ -->
+  <div class="tab-content" data-content="3">
+    <div class="info-card">
+      <div class="text-center mb-4">
+        <h2 class="text-lg md:text-2xl font-bold text-gray-800">📝 定制信息填写</h2>
+        <p class="text-gray-500 text-sm mt-1">填写完订单信息后，点击底部按钮导出为信息文档（可发给商家）</p>
+      </div>
+
+      <div class="info-form">
+        <div class="form-row">
+          <label>颜色</label>
+          <input type="text" id="infoColor" class="form-input" value="白色" readonly>
+        </div>
+
+        <div class="form-row">
+          <label>歌星</label>
+          <input type="text" id="infoSinger" class="form-input" placeholder="请输入歌星名字">
+        </div>
+
+        <!-- ★ 新增：发货方式 -->
+        <div class="info-section-title">发货方式</div>
+        <div class="radio-group">
+          <label class="radio-option" id="shippingOptionA">
+            <input type="radio" name="shippingMethod" value="半成品发货" checked>
+            <div class="radio-text">
+              <div class="radio-title">🛠️ 半成品发货</div>
+              <div class="radio-desc">需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报</div>
+            </div>
+          </label>
+          <label class="radio-option" id="shippingOptionB">
+            <input type="radio" name="shippingMethod" value="成品发货">
+            <div class="radio-text">
+              <div class="radio-title">📦 成品发货</div>
+              <div class="radio-desc">板框亚克力安装好，海报粘贴好，为避免货损，摆件须自行放置到里面</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="info-section-title">唱片对应歌曲名称</div>
+        <div class="section-desc">
+          📌 说明：下面的 9 个输入框，分别填写 9 张唱片各自对应的歌曲名称。
+        </div>
+
+        <div class="form-row">
+          <label>唱片1</label>
+          <input type="text" id="infoRecord1" class="form-input" placeholder="唱片1对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片2</label>
+          <input type="text" id="infoRecord2" class="form-input" placeholder="唱片2对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片3</label>
+          <input type="text" id="infoRecord3" class="form-input" placeholder="唱片3对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片4</label>
+          <input type="text" id="infoRecord4" class="form-input" placeholder="唱片4对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片5</label>
+          <input type="text" id="infoRecord5" class="form-input" placeholder="唱片5对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片6</label>
+          <input type="text" id="infoRecord6" class="form-input" placeholder="唱片6对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片7</label>
+          <input type="text" id="infoRecord7" class="form-input" placeholder="唱片7对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片8</label>
+          <input type="text" id="infoRecord8" class="form-input" placeholder="唱片8对应的歌曲名称">
+        </div>
+        <div class="form-row">
+          <label>唱片9</label>
+          <input type="text" id="infoRecord9" class="form-input" placeholder="唱片9对应的歌曲名称">
+        </div>
+
+        <!-- ★ 新增：赠送内容（固定展示） -->
+        <div class="info-section-title">随单赠送</div>
+        <div class="gift-box">
+          <div class="gift-title">🎁 赠送摆件</div>
+          <div class="gift-content">
+            迷你气球、钢琴、板凳、吉他、迷你花束、仿真草坪、花粉
+          </div>
+        </div>
+        <div class="gift-box" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-color: #3b82f6;">
+          <div class="gift-title" style="color: #1e40af;">📇 赠送读卡器</div>
+          <div class="gift-content" style="color: #1e3a8a;">
+            后续可用来更改音乐或者屏幕图片，手机电脑都可用
+          </div>
+        </div>
+
+        <div class="info-section-title">收货信息</div>
+
+        <div class="form-row">
+          <label>收货信息</label>
+          <textarea id="infoShipping" class="form-input" rows="4" placeholder="姓名：&#10;电话：&#10;地址："></textarea>
         </div>
       </div>
 
-      <div class="export-area">
-        <button id="btnExportPDF1" class="export-btn">
-          📄 导出「相框正反面」PDF（2页）
-        </button>
-        <button id="btnExportPDF2" class="export-btn secondary">
-          📄 导出「侧边+唱片」PDF（2页）
-        </button>
-      </div>
+      <button id="btnExportInfo" class="export-btn info">
+        📥 导出定制信息文档
+      </button>
+      <div class="info-hint">导出为 txt 文本文件，可发到电脑或直接转发给商家</div>
     </div>
   </div>
 </div>
@@ -422,7 +719,6 @@ function showToast(msg, duration = 1800) {
   toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), duration);
 }
 
-/* 选项卡切换 */
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
 tabButtons.forEach(btn => {
@@ -456,8 +752,6 @@ const btnExportZip = document.getElementById('btnExportZip');
 let imageEntries = [];
 let currentEditId = null;
 let isDragging = false, dragStartX, dragStartY, imageStartX, imageStartY;
-
-/* 双指捏合状态 */
 let isPinching = false;
 let pinchStartDist = 0;
 let pinchStartCenter = { x: 0, y: 0 };
@@ -467,7 +761,6 @@ let pinchStartEntryPos = { x: 0, y: 0 };
 function getCurrentEntry() {
   return currentEditId ? imageEntries.find(e => e.id === currentEditId) : null;
 }
-// 兼容鼠标事件和触摸事件（touch 也可直接传进来）
 function getCanvasMousePos(e) {
   const rect = canvas.getBoundingClientRect();
   const clientX = (e.clientX != null) ? e.clientX : (e.touches && e.touches[0].clientX);
@@ -519,7 +812,6 @@ function refreshImageList() {
       imageList.appendChild(div);
     });
   }
-  // 同步 ZIP 按钮状态
   btnExportZip.disabled = imageEntries.length === 0;
 }
 function selectImage(id) {
@@ -601,7 +893,6 @@ document.getElementById('btnClearImages').addEventListener('click', () => {
   refreshImageList();
 });
 
-/* ============ 屏幕图片：鼠标 + 触摸 + 双指捏合 ============ */
 function imgStart(e) {
   const entry = getCurrentEntry();
   if (!entry) return;
@@ -623,13 +914,11 @@ function imgMove(e) {
 }
 function imgEnd() { isDragging = false; }
 
-/* --- 鼠标事件（PC） --- */
 canvas.addEventListener('mousedown', imgStart);
 canvas.addEventListener('mousemove', imgMove);
 canvas.addEventListener('mouseup', imgEnd);
 canvas.addEventListener('mouseleave', imgEnd);
 
-/* 滚轮缩放（PC） */
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   const entry = getCurrentEntry();
@@ -646,13 +935,11 @@ canvas.addEventListener('wheel', (e) => {
   drawCanvas(entry);
 }, { passive: false });
 
-/* --- 触摸事件（手机） --- */
 canvas.addEventListener('touchstart', (e) => {
   const entry = getCurrentEntry();
   if (!entry) return;
 
   if (e.touches.length === 2) {
-    // 进入双指捏合模式
     e.preventDefault();
     isDragging = false;
     isPinching = true;
@@ -681,7 +968,6 @@ canvas.addEventListener('touchmove', (e) => {
     const ratio = dist / pinchStartDist;
     const newScale = Math.max(0.1, Math.min(5.0, pinchStartScale * ratio));
 
-    // 以捏合中点为锚点缩放
     const c = pinchStartCenter;
     const relX = c.x - pinchStartEntryPos.x;
     const relY = c.y - pinchStartEntryPos.y;
@@ -691,7 +977,6 @@ canvas.addEventListener('touchmove', (e) => {
     entry.x = c.x - relX * k;
     entry.y = c.y - relY * k;
 
-    // 实时同步滑块 UI
     scaleSlider.value = Math.round(entry.scale * 100);
     scaleValue.textContent = Math.round(entry.scale * 100);
 
@@ -707,7 +992,6 @@ canvas.addEventListener('touchend', (e) => {
     isDragging = false;
     isPinching = false;
   } else if (e.touches.length === 1 && isPinching) {
-    // 从双指变成单指：结束捏合，等待用户松手重新按下拖动
     isPinching = false;
     isDragging = false;
   }
@@ -762,7 +1046,6 @@ btnExportAll.addEventListener('click', () => {
   showToast('✅ 正在批量导出 ' + imageEntries.length + ' 张图片...');
 });
 
-/* ============ 打包导出为 ZIP ============ */
 function canvasToBlobAsync(cnv, type = 'image/jpeg', quality = 0.95) {
   return new Promise((resolve, reject) => {
     if (cnv.toBlob) {
@@ -800,7 +1083,6 @@ btnExportZip.addEventListener('click', async () => {
       await new Promise(r => setTimeout(r, 0));
     }
 
-    // STORE：JPEG 已经压过，不再二次压缩，速度快
     const zipBlob = await zip.generateAsync({
       type: 'blob',
       compression: 'STORE',
@@ -822,11 +1104,12 @@ ctx.fillStyle = 'white';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 /* ============================================================
- * 功能二：音乐文件编辑
+ * 功能二：音乐文件编辑（固定输出 22.05kHz）
  * ============================================================ */
 const audioList = document.getElementById('audioList');
 const audioListEmpty = document.getElementById('audioListEmpty');
 const btnConvertAll = document.getElementById('btnConvertAll');
+const btnExportAudioZip = document.getElementById('btnExportAudioZip');
 const conversionProgress = document.getElementById('conversionProgress');
 let audioEntries = [];
 
@@ -836,9 +1119,11 @@ function refreshAudioList() {
     audioList.appendChild(audioListEmpty);
     audioListEmpty.classList.remove('hidden');
     btnConvertAll.disabled = true;
+    btnExportAudioZip.disabled = true;
   } else {
     audioListEmpty.classList.add('hidden');
     btnConvertAll.disabled = false;
+    btnExportAudioZip.disabled = false;
     audioEntries.forEach(entry => {
       const div = document.createElement('div');
       div.className = 'audio-item flex items-center justify-between p-3 rounded-lg text-sm ' + (entry.converted ? 'completed' : '');
@@ -870,25 +1155,32 @@ document.getElementById('btnClearAudios').addEventListener('click', () => {
   refreshAudioList();
 });
 
+async function convertOneAudioEntry(entry) {
+  if (entry.converted && entry.blob) return;
+  const actx = new AudioContext();
+  const ab = await entry.file.arrayBuffer();
+  const audioBuf = await actx.decodeAudioData(ab);
+  const wavBlob = await convertAudioToWav(audioBuf, 22050);
+  entry.blob = wavBlob;
+  entry.converted = true;
+}
+
 btnConvertAll.addEventListener('click', async () => {
   if (!audioEntries.length) return;
   conversionProgress.classList.remove('hidden');
+  conversionProgress.textContent = '正在转换，请稍候...';
   btnConvertAll.disabled = true;
-  const sampleRate = parseInt(document.getElementById('sampleRateSelect').value);
+  btnExportAudioZip.disabled = true;
   for (let entry of audioEntries) {
     if (entry.converted) continue;
     try {
-      const actx = new AudioContext();
-      const ab = await entry.file.arrayBuffer();
-      const audioBuf = await actx.decodeAudioData(ab);
-      const wavBlob = await convertAudioToWav(audioBuf, sampleRate);
-      entry.blob = wavBlob;
-      entry.converted = true;
+      await convertOneAudioEntry(entry);
       refreshAudioList();
     } catch (err) { console.error(err); }
   }
   conversionProgress.classList.add('hidden');
   btnConvertAll.disabled = false;
+  btnExportAudioZip.disabled = false;
   const converted = audioEntries.filter(e => e.converted && e.blob);
   if (!converted.length) { showToast('⚠️ 转换失败'); return; }
   showToast('✅ 正在下载...');
@@ -896,7 +1188,66 @@ btnConvertAll.addEventListener('click', async () => {
   setTimeout(() => { audioEntries = []; refreshAudioList(); }, converted.length * 400 + 500);
 });
 
-function convertAudioToWav(audioBuffer, targetSampleRate = 44100) {
+btnExportAudioZip.addEventListener('click', async () => {
+  if (!audioEntries.length) { showToast('没有音频文件'); return; }
+
+  const origText = btnExportAudioZip.textContent;
+  btnExportAudioZip.disabled = true;
+  btnConvertAll.disabled = true;
+  btnExportAudioZip.textContent = '正在转换...';
+  conversionProgress.classList.remove('hidden');
+  conversionProgress.textContent = '正在转换并打包，请稍候...';
+  showToast('正在转换音频，请稍候...', 6000);
+
+  try {
+    for (let i = 0; i < audioEntries.length; i++) {
+      const entry = audioEntries[i];
+      if (entry.converted && entry.blob) continue;
+      btnExportAudioZip.textContent = `转换中 ${i + 1}/${audioEntries.length}`;
+      try {
+        await convertOneAudioEntry(entry);
+        refreshAudioList();
+      } catch (err) {
+        console.error('转换失败', entry.name, err);
+      }
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    const converted = audioEntries.filter(e => e.converted && e.blob);
+    if (!converted.length) { showToast('⚠️ 转换失败'); return; }
+
+    const zip = new JSZip();
+    for (let i = 0; i < converted.length; i++) {
+      zip.file('music-' + (i + 1) + '.wav', converted[i].blob);
+      btnExportAudioZip.textContent = `打包中 ${i + 1}/${converted.length}`;
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    btnExportAudioZip.textContent = '正在生成 ZIP...';
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'STORE',
+      mimeType: 'application/zip'
+    });
+
+    saveAs(zipBlob, 'audios.zip');
+    showToast('✅ 已打包 ' + converted.length + ' 个音频');
+
+    audioEntries = [];
+    refreshAudioList();
+  } catch (err) {
+    console.error(err);
+    showToast('❌ 打包失败：' + (err.message || '未知错误'), 3000);
+  } finally {
+    conversionProgress.classList.add('hidden');
+    conversionProgress.textContent = '正在转换，请稍候...';
+    btnExportAudioZip.textContent = origText;
+    btnExportAudioZip.disabled = audioEntries.length === 0;
+    btnConvertAll.disabled = audioEntries.length === 0;
+  }
+});
+
+function convertAudioToWav(audioBuffer, targetSampleRate) {
   return new Promise((resolve, reject) => {
     const targetChannels = 1;
     const sr = targetSampleRate / audioBuffer.sampleRate;
@@ -1363,9 +1714,6 @@ function floatTo16(out, off, inp) {
   document.getElementById('btnDeleteB').addEventListener('click', () => editorB.deleteSelected());
   document.getElementById('btnDeleteC').addEventListener('click', () => editorC.deleteSelected());
 
-  /* ============================================================
-   * 黑胶唱片
-   * ============================================================ */
   const CIRCLE_DIAMETER = Math.round(DISPLAY_WIDTH * 40 / 297);
   const CIRCLE_RADIUS = CIRCLE_DIAMETER / 2;
   const COLS = 6, ROWS = 4, TOTAL = 24;
@@ -1573,9 +1921,6 @@ function floatTo16(out, off, inp) {
     draw2();
   });
 
-  /* ============================================================
-   * 导出 PDF：两个按钮
-   * ============================================================ */
   function makeVinylExportCanvas() {
     const vc = document.createElement('canvas');
     vc.width = DISPLAY_WIDTH * EXPORT_SCALE;
@@ -1650,6 +1995,119 @@ function floatTo16(out, off, inp) {
   });
   observer.observe(tab2, { attributes: true, attributeFilter: ['class'] });
   if (tab2.classList.contains('active') && !vinylReady) initVinylCanvas();
+})();
+
+/* ============================================================
+ * 功能四：定制信息填写 + 导出信息文档
+ * ============================================================ */
+(function () {
+  // 发货方式单选：点击卡片切换样式
+  const shippingOptions = document.querySelectorAll('input[name="shippingMethod"]');
+  function refreshShippingStyles() {
+    document.getElementById('shippingOptionA').classList.toggle(
+      'selected',
+      document.querySelector('input[name="shippingMethod"][value="半成品发货"]').checked
+    );
+    document.getElementById('shippingOptionB').classList.toggle(
+      'selected',
+      document.querySelector('input[name="shippingMethod"][value="成品发货"]').checked
+    );
+  }
+  shippingOptions.forEach(radio => {
+    radio.addEventListener('change', refreshShippingStyles);
+  });
+  refreshShippingStyles();
+
+  function getShippingMethod() {
+    const checked = document.querySelector('input[name="shippingMethod"]:checked');
+    return checked ? checked.value : '半成品发货';
+  }
+
+  function getInfoData() {
+    const singer = document.getElementById('infoSinger').value.trim();
+    const records = [];
+    for (let i = 1; i <= 9; i++) {
+      records.push((document.getElementById('infoRecord' + i).value || '').trim());
+    }
+    const shipping = document.getElementById('infoShipping').value.trim();
+    const method = getShippingMethod();
+    return { singer, records, shipping, method };
+  }
+
+  function buildInfoText() {
+    const d = getInfoData();
+    const lines = [];
+    const now = new Date();
+    const pad = n => n < 10 ? '0' + n : '' + n;
+    const timeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    lines.push('================================================');
+    lines.push('       小羊的音乐相框 - 定制信息单');
+    lines.push('================================================');
+    lines.push('');
+    lines.push('【颜色】');
+    lines.push('  白色');
+    lines.push('');
+    lines.push('【歌星】');
+    lines.push('  ' + (d.singer || '未填写'));
+    lines.push('');
+    lines.push('------------------------------------------------');
+    lines.push('【发货方式】');
+    if (d.method === '半成品发货') {
+      lines.push('  半成品发货');
+      lines.push('  （需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报）');
+    } else {
+      lines.push('  成品发货');
+      lines.push('  （板框亚克力安装好，海报粘贴好，为避免货损，摆件须自行放置到里面）');
+    }
+    lines.push('');
+    lines.push('------------------------------------------------');
+    lines.push('【唱片对应歌曲名称】');
+    for (let i = 0; i < 9; i++) {
+      lines.push(`  唱片${i + 1}：${d.records[i] || '未填写'}`);
+    }
+    lines.push('');
+    lines.push('------------------------------------------------');
+    lines.push('【随单赠送】');
+    lines.push('  🎁 赠送摆件：迷你气球、钢琴、板凳、吉他、迷你花束、仿真草坪、花粉');
+    lines.push('  📇 赠送读卡器：后续可用来更改音乐或者屏幕图片，手机电脑都可用');
+    lines.push('');
+    lines.push('------------------------------------------------');
+    lines.push('【收货信息】');
+    if (d.shipping) {
+      d.shipping.split(/\r?\n/).forEach(l => {
+        lines.push('  ' + l);
+      });
+    } else {
+      lines.push('  未填写');
+    }
+    lines.push('');
+    lines.push('------------------------------------------------');
+    lines.push('  生成时间：' + timeStr);
+    lines.push('================================================');
+    lines.push('');
+
+    return lines.join('\n');
+  }
+
+  document.getElementById('btnExportInfo').addEventListener('click', () => {
+    try {
+      const text = buildInfoText();
+      const now = new Date();
+      const pad = n => n < 10 ? '0' + n : '' + n;
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+      const fileName = '定制信息_' + stamp + '.txt';
+
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + text], { type: 'text/plain;charset=utf-8' });
+
+      saveAs(blob, fileName);
+      showToast('✅ 信息文档已导出：' + fileName, 2500);
+    } catch (err) {
+      console.error(err);
+      showToast('❌ 导出失败：' + (err.message || '未知错误'), 3000);
+    }
+  });
 })();
 </script>
 </body>
