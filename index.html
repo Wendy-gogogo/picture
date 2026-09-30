@@ -26,7 +26,6 @@
     align-items: center;
     gap: 6px;
   }
-  /* ★ 序号圆圈 */
   .tab-num {
     display: inline-flex;
     align-items: center;
@@ -417,10 +416,6 @@
     color: #64748b;
     line-height: 1.6;
   }
-  .radio-desc .highlight {
-    color: #dc2626;
-    font-weight: 700;
-  }
 
   .gift-box {
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -710,16 +705,16 @@
         <div class="info-section-title">发货方式</div>
         <div class="radio-group">
           <label class="radio-option" id="shippingOptionA">
-            <input type="radio" name="shippingMethod" value="半成品发货318元" checked>
+            <input type="radio" name="shippingMethod" value="半成品发货298元" checked>
             <div class="radio-text">
-              <div class="radio-title">🛠️ 半成品发货<span class="price">318元</span></div>
+              <div class="radio-title">🛠️ 半成品发货<span class="price">298元</span></div>
               <div class="radio-desc">需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报</div>
             </div>
           </label>
           <label class="radio-option" id="shippingOptionB">
-            <input type="radio" name="shippingMethod" value="成品发货338元">
+            <input type="radio" name="shippingMethod" value="成品发货318元">
             <div class="radio-text">
-              <div class="radio-title">📦 成品发货<span class="price">338元</span></div>
+              <div class="radio-title">📦 成品发货<span class="price">318元</span></div>
               <div class="radio-desc">板框亚克力安装好，海报粘贴好，为避免货损，摆件须自行放置到里面</div>
             </div>
           </label>
@@ -786,26 +781,6 @@
         <div class="form-row">
           <label>收货信息</label>
           <textarea id="infoShipping" class="form-input" rows="4" placeholder="姓名：&#10;电话：&#10;地址："></textarea>
-        </div>
-
-        <div class="info-section-title">是否会将制作成品发抖音</div>
-        <div class="radio-group">
-          <label class="radio-option" id="douyinOptionYes">
-            <input type="radio" name="douyinPost" value="是" checked>
-            <div class="radio-text">
-              <div class="radio-title">✅ 是</div>
-              <div class="radio-desc">
-                发布 <span class="highlight">3 天</span>即可返现 <span class="highlight">10 元</span>，作品获得 <span class="highlight">50 点赞</span> 再返 <span class="highlight">10 元</span>
-              </div>
-            </div>
-          </label>
-          <label class="radio-option" id="douyinOptionNo">
-            <input type="radio" name="douyinPost" value="否">
-            <div class="radio-text">
-              <div class="radio-title">❌ 否</div>
-              <div class="radio-desc">不参与抖音发布返现活动</div>
-            </div>
-          </label>
         </div>
       </div>
 
@@ -2168,11 +2143,11 @@ function floatTo16(out, off, inp) {
   function refreshShippingStyles() {
     document.getElementById('shippingOptionA').classList.toggle(
       'selected',
-      document.querySelector('input[name="shippingMethod"][value="半成品发货318元"]').checked
+      document.querySelector('input[name="shippingMethod"][value="半成品发货298元"]').checked
     );
     document.getElementById('shippingOptionB').classList.toggle(
       'selected',
-      document.querySelector('input[name="shippingMethod"][value="成品发货338元"]').checked
+      document.querySelector('input[name="shippingMethod"][value="成品发货318元"]').checked
     );
   }
   shippingOptions.forEach(radio => {
@@ -2182,28 +2157,7 @@ function floatTo16(out, off, inp) {
 
   function getShippingMethod() {
     const checked = document.querySelector('input[name="shippingMethod"]:checked');
-    return checked ? checked.value : '半成品发货318元';
-  }
-
-  const douyinOptions = document.querySelectorAll('input[name="douyinPost"]');
-  function refreshDouyinStyles() {
-    document.getElementById('douyinOptionYes').classList.toggle(
-      'selected',
-      document.querySelector('input[name="douyinPost"][value="是"]').checked
-    );
-    document.getElementById('douyinOptionNo').classList.toggle(
-      'selected',
-      document.querySelector('input[name="douyinPost"][value="否"]').checked
-    );
-  }
-  douyinOptions.forEach(radio => {
-    radio.addEventListener('change', refreshDouyinStyles);
-  });
-  refreshDouyinStyles();
-
-  function getDouyinPost() {
-    const checked = document.querySelector('input[name="douyinPost"]:checked');
-    return checked ? checked.value : '是';
+    return checked ? checked.value : '半成品发货298元';
   }
 
   function getInfoData() {
@@ -2214,8 +2168,7 @@ function floatTo16(out, off, inp) {
     }
     const shipping = document.getElementById('infoShipping').value.trim();
     const method = getShippingMethod();
-    const douyin = getDouyinPost();
-    return { singer, records, shipping, method, douyin };
+    return { singer, records, shipping, method };
   }
 
   function buildInfoText() {
@@ -2237,11 +2190,11 @@ function floatTo16(out, off, inp) {
     lines.push('');
     lines.push('------------------------------------------------');
     lines.push('【发货方式】');
-    if (d.method === '半成品发货318元') {
-      lines.push('  半成品发货  318元');
+    if (d.method === '半成品发货298元') {
+      lines.push('  半成品发货  298元');
       lines.push('  （需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报）');
     } else {
-      lines.push('  成品发货  338元');
+      lines.push('  成品发货  318元');
       lines.push('  （板框亚克力安装好，海报粘贴好，为避免货损，摆件须自行放置到里面）');
     }
     lines.push('');
@@ -2264,15 +2217,6 @@ function floatTo16(out, off, inp) {
       });
     } else {
       lines.push('  未填写');
-    }
-    lines.push('');
-    lines.push('------------------------------------------------');
-    lines.push('【是否会将制作成品发抖音】');
-    if (d.douyin === '是') {
-      lines.push('  是');
-      lines.push('  （发布3天即可返现10元，作品获得50点赞再返10元）');
-    } else {
-      lines.push('  否');
     }
     lines.push('');
     lines.push('------------------------------------------------');
