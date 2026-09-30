@@ -125,6 +125,56 @@
     color: var(--text);
   }
 
+  /* ★ 收货名称输入卡片 */
+  .name-input-card {
+    background: #fff;
+    border: 2px solid #f43f5e;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.1);
+  }
+  .name-input-card label {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: #9f1239;
+    margin-bottom: 8px;
+  }
+  .name-input-card label .required {
+    color: #f43f5e;
+    font-weight: 800;
+    margin-left: 4px;
+  }
+  .name-input-card .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 16px;
+    border: 2px solid #fecdd3;
+    border-radius: 10px;
+    background: #fff;
+    color: #1a1a2e;
+    box-sizing: border-box;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+    min-height: 46px;
+  }
+  .name-input-card .form-input:focus {
+    border-color: #f43f5e;
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15);
+  }
+  .name-input-card .name-hint {
+    font-size: 12.5px;
+    color: #64748b;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .name-input-card .name-hint .warn {
+    color: #f43f5e;
+    font-weight: 700;
+  }
+
   .canvas-wrapper {
     position: relative;
     width: 100%;
@@ -373,10 +423,6 @@
     color: #78350f;
     line-height: 1.8;
   }
-  .gift-content strong {
-    color: #92400e;
-    font-weight: 700;
-  }
 
   .toast {
     position: fixed;
@@ -535,6 +581,19 @@
         <p class="handle-hint mt-1">💡 单指拖动图片 · 双指捏合缩放 · 拖角手柄调整大小</p>
       </div>
 
+      <!-- ★ 收货名称输入（必填） -->
+      <div class="name-input-card">
+        <label for="designShippingName">
+          📛 收货名称
+          <span class="required">* 必填</span>
+        </label>
+        <input type="text" id="designShippingName" class="form-input" placeholder="请输入收货名称（会显示在每个 PDF 的右下角）" maxlength="20">
+        <div class="name-hint">
+          <span class="warn">⚠️ 请先填写收货名称，才能导出 PDF。</span><br>
+          该名称会显示在每个 PDF 的右下角作为专属标识。
+        </div>
+      </div>
+
       <div class="canvas-panels">
         <div class="canvas-card">
           <div class="card-header">
@@ -620,13 +679,12 @@
           <input type="text" id="infoSinger" class="form-input" placeholder="请输入歌星名字">
         </div>
 
-        <!-- 发货方式 -->
         <div class="info-section-title">发货方式</div>
         <div class="radio-group">
           <label class="radio-option" id="shippingOptionA">
-            <input type="radio" name="shippingMethod" value="半成品发货308元" checked>
+            <input type="radio" name="shippingMethod" value="半成品发货318元" checked>
             <div class="radio-text">
-              <div class="radio-title">🛠️ 半成品发货<span class="price">308元</span></div>
+              <div class="radio-title">🛠️ 半成品发货<span class="price">318元</span></div>
               <div class="radio-desc">需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报</div>
             </div>
           </label>
@@ -702,7 +760,6 @@
           <textarea id="infoShipping" class="form-input" rows="4" placeholder="姓名：&#10;电话：&#10;地址："></textarea>
         </div>
 
-        <!-- ★ 新增：是否发抖音返现 -->
         <div class="info-section-title">是否会将制作成品发抖音</div>
         <div class="radio-group">
           <label class="radio-option" id="douyinOptionYes">
@@ -1338,6 +1395,60 @@ function floatTo16(out, off, inp) {
   const EXPORT_SCALE = 4;
   const SNAP_THRESHOLD = 8;
 
+  // ★ 获取收货名称（必填）
+  function getDesignName() {
+    const el = document.getElementById('designShippingName');
+    return (el && el.value || '').trim();
+  }
+
+  // ★ 校验收货名称，未填就提示并返回 false
+  function requireDesignName() {
+    const name = getDesignName();
+    if (!name) {
+      showToast('⚠️ 请先填写收货名称', 2500);
+      const el = document.getElementById('designShippingName');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => el.focus(), 300);
+      }
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * ★ 在画布右下角绘制收货名称水印
+   * 使用白色描边 + 深色文字，不与蒙版主体内容冲突
+   */
+  function drawDesignNameWatermark(ctx, canvasW, canvasH, name) {
+    if (!name) return;
+    const S = EXPORT_SCALE;
+    // 字号：基础 13px × 导出倍率
+    const fontSize = 13 * S;
+    const paddingRight = 24 * S;
+    const paddingBottom = 20 * S;
+
+    ctx.save();
+    ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+
+    const x = canvasW - paddingRight;
+    const y = canvasH - paddingBottom;
+
+    // 白色描边
+    ctx.lineWidth = 4 * S;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.lineJoin = 'round';
+    ctx.strokeText(name, x, y);
+
+    // 深色填充
+    ctx.fillStyle = 'rgba(30, 30, 50, 0.88)';
+    ctx.fillText(name, x, y);
+
+    ctx.restore();
+  }
+
   function createMask(wMm, hMm, count = 1, gapMm = 0) {
     const w = Math.round(DISPLAY_WIDTH * wMm / 297);
     const h = Math.round(DISPLAY_HEIGHT * hMm / 210);
@@ -1687,7 +1798,8 @@ function floatTo16(out, off, inp) {
       }, { passive: false });
     }
 
-    exportCanvas() {
+    // ★ 导出 canvas（带收货名称水印）
+    exportCanvas(watermarkName) {
       const ew = DISPLAY_WIDTH * EXPORT_SCALE;
       const eh = DISPLAY_HEIGHT * EXPORT_SCALE;
       const ec = document.createElement('canvas');
@@ -1708,6 +1820,8 @@ function floatTo16(out, off, inp) {
         });
         cx.restore();
       });
+      // ★ 叠加右下角水印
+      drawDesignNameWatermark(cx, ew, eh, watermarkName);
       return ec;
     }
   }
@@ -1948,7 +2062,8 @@ function floatTo16(out, off, inp) {
     draw2();
   });
 
-  function makeVinylExportCanvas() {
+  // ★ 黑胶导出 canvas（带收货名称水印）
+  function makeVinylExportCanvas(watermarkName) {
     const vc = document.createElement('canvas');
     vc.width = DISPLAY_WIDTH * EXPORT_SCALE;
     vc.height = DISPLAY_HEIGHT * EXPORT_SCALE;
@@ -1971,23 +2086,28 @@ function floatTo16(out, off, inp) {
       }
       vctx.restore();
     });
+    // ★ 叠加右下角水印
+    drawDesignNameWatermark(vctx, vc.width, vc.height, watermarkName);
     return vc;
   }
 
+  // ★ 导出按钮 1：相框正反面（先校验收货名称）
   document.getElementById('btnExportPDF1').addEventListener('click', () => {
+    if (!requireDesignName()) return;
+    const name = getDesignName();
     try {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const width = 297, height = 210;
 
-      let imgData = editorA.exportCanvas().toDataURL('image/jpeg', 0.95);
+      let imgData = editorA.exportCanvas(name).toDataURL('image/jpeg', 0.95);
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
 
-      imgData = editorB.exportCanvas().toDataURL('image/jpeg', 0.95);
+      imgData = editorB.exportCanvas(name).toDataURL('image/jpeg', 0.95);
       pdf.addPage();
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
 
-      pdf.save('相框正反面.pdf');
+      pdf.save('相框正反面_' + name + '.pdf');
       showToast('✅ PDF已导出，共2页');
     } catch (err) {
       console.error(err);
@@ -1995,20 +2115,23 @@ function floatTo16(out, off, inp) {
     }
   });
 
+  // ★ 导出按钮 2：侧边+唱片（先校验收货名称）
   document.getElementById('btnExportPDF2').addEventListener('click', () => {
+    if (!requireDesignName()) return;
+    const name = getDesignName();
     try {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const width = 297, height = 210;
 
-      let imgData = editorC.exportCanvas().toDataURL('image/jpeg', 0.95);
+      let imgData = editorC.exportCanvas(name).toDataURL('image/jpeg', 0.95);
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
 
-      imgData = makeVinylExportCanvas().toDataURL('image/jpeg', 0.95);
+      imgData = makeVinylExportCanvas(name).toDataURL('image/jpeg', 0.95);
       pdf.addPage();
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
 
-      pdf.save('侧边与唱片.pdf');
+      pdf.save('侧边与唱片_' + name + '.pdf');
       showToast('✅ PDF已导出，共2页');
     } catch (err) {
       console.error(err);
@@ -2028,12 +2151,11 @@ function floatTo16(out, off, inp) {
  * 功能四：定制信息填写 + 导出信息文档
  * ============================================================ */
 (function () {
-  // 发货方式
   const shippingOptions = document.querySelectorAll('input[name="shippingMethod"]');
   function refreshShippingStyles() {
     document.getElementById('shippingOptionA').classList.toggle(
       'selected',
-      document.querySelector('input[name="shippingMethod"][value="半成品发货308元"]').checked
+      document.querySelector('input[name="shippingMethod"][value="半成品发货318元"]').checked
     );
     document.getElementById('shippingOptionB').classList.toggle(
       'selected',
@@ -2047,10 +2169,9 @@ function floatTo16(out, off, inp) {
 
   function getShippingMethod() {
     const checked = document.querySelector('input[name="shippingMethod"]:checked');
-    return checked ? checked.value : '半成品发货308元';
+    return checked ? checked.value : '半成品发货318元';
   }
 
-  // 抖音返现
   const douyinOptions = document.querySelectorAll('input[name="douyinPost"]');
   function refreshDouyinStyles() {
     document.getElementById('douyinOptionYes').classList.toggle(
@@ -2103,8 +2224,8 @@ function floatTo16(out, off, inp) {
     lines.push('');
     lines.push('------------------------------------------------');
     lines.push('【发货方式】');
-    if (d.method === '半成品发货308元') {
-      lines.push('  半成品发货  308元');
+    if (d.method === '半成品发货318元') {
+      lines.push('  半成品发货  318元');
       lines.push('  （需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报）');
     } else {
       lines.push('  成品发货  338元');
