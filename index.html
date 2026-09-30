@@ -297,7 +297,6 @@
     margin-top: 2px;
   }
 
-  /* 发货方式单选卡片 */
   .radio-group {
     display: flex;
     flex-direction: column;
@@ -338,13 +337,17 @@
     color: #1a1a2e;
     margin-bottom: 4px;
   }
+  .radio-title .price {
+    color: #dc2626;
+    font-weight: 800;
+    margin-left: 4px;
+  }
   .radio-desc {
     font-size: 13px;
     color: #64748b;
     line-height: 1.6;
   }
 
-  /* 赠送内容卡片 */
   .gift-box {
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     border: 2px dashed #f59e0b;
@@ -613,20 +616,20 @@
           <input type="text" id="infoSinger" class="form-input" placeholder="请输入歌星名字">
         </div>
 
-        <!-- ★ 新增：发货方式 -->
+        <!-- 发货方式（含价格） -->
         <div class="info-section-title">发货方式</div>
         <div class="radio-group">
           <label class="radio-option" id="shippingOptionA">
-            <input type="radio" name="shippingMethod" value="半成品发货" checked>
+            <input type="radio" name="shippingMethod" value="半成品发货308元" checked>
             <div class="radio-text">
-              <div class="radio-title">🛠️ 半成品发货</div>
+              <div class="radio-title">🛠️ 半成品发货<span class="price">308元</span></div>
               <div class="radio-desc">需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报</div>
             </div>
           </label>
           <label class="radio-option" id="shippingOptionB">
-            <input type="radio" name="shippingMethod" value="成品发货">
+            <input type="radio" name="shippingMethod" value="成品发货338元">
             <div class="radio-text">
-              <div class="radio-title">📦 成品发货</div>
+              <div class="radio-title">📦 成品发货<span class="price">338元</span></div>
               <div class="radio-desc">板框亚克力安装好，海报粘贴好，为避免货损，摆件须自行放置到里面</div>
             </div>
           </label>
@@ -674,7 +677,6 @@
           <input type="text" id="infoRecord9" class="form-input" placeholder="唱片9对应的歌曲名称">
         </div>
 
-        <!-- ★ 新增：赠送内容（固定展示） -->
         <div class="info-section-title">随单赠送</div>
         <div class="gift-box">
           <div class="gift-title">🎁 赠送摆件</div>
@@ -2001,16 +2003,15 @@ function floatTo16(out, off, inp) {
  * 功能四：定制信息填写 + 导出信息文档
  * ============================================================ */
 (function () {
-  // 发货方式单选：点击卡片切换样式
   const shippingOptions = document.querySelectorAll('input[name="shippingMethod"]');
   function refreshShippingStyles() {
     document.getElementById('shippingOptionA').classList.toggle(
       'selected',
-      document.querySelector('input[name="shippingMethod"][value="半成品发货"]').checked
+      document.querySelector('input[name="shippingMethod"][value="半成品发货308元"]').checked
     );
     document.getElementById('shippingOptionB').classList.toggle(
       'selected',
-      document.querySelector('input[name="shippingMethod"][value="成品发货"]').checked
+      document.querySelector('input[name="shippingMethod"][value="成品发货338元"]').checked
     );
   }
   shippingOptions.forEach(radio => {
@@ -2020,7 +2021,7 @@ function floatTo16(out, off, inp) {
 
   function getShippingMethod() {
     const checked = document.querySelector('input[name="shippingMethod"]:checked');
-    return checked ? checked.value : '半成品发货';
+    return checked ? checked.value : '半成品发货308元';
   }
 
   function getInfoData() {
@@ -2053,11 +2054,11 @@ function floatTo16(out, off, inp) {
     lines.push('');
     lines.push('------------------------------------------------');
     lines.push('【发货方式】');
-    if (d.method === '半成品发货') {
-      lines.push('  半成品发货');
+    if (d.method === '半成品发货308元') {
+      lines.push('  半成品发货  308元');
       lines.push('  （需要自己插上板框和亚克力，会拧螺丝就行，自己粘贴海报）');
     } else {
-      lines.push('  成品发货');
+      lines.push('  成品发货  338元');
       lines.push('  （板框亚克力安装好，海报粘贴好，为避免货损，摆件须自行放置到里面）');
     }
     lines.push('');
