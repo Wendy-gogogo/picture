@@ -347,6 +347,10 @@
     color: #64748b;
     line-height: 1.6;
   }
+  .radio-desc .highlight {
+    color: #dc2626;
+    font-weight: 700;
+  }
 
   .gift-box {
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -616,7 +620,7 @@
           <input type="text" id="infoSinger" class="form-input" placeholder="请输入歌星名字">
         </div>
 
-        <!-- 发货方式（含价格） -->
+        <!-- 发货方式 -->
         <div class="info-section-title">发货方式</div>
         <div class="radio-group">
           <label class="radio-option" id="shippingOptionA">
@@ -696,6 +700,27 @@
         <div class="form-row">
           <label>收货信息</label>
           <textarea id="infoShipping" class="form-input" rows="4" placeholder="姓名：&#10;电话：&#10;地址："></textarea>
+        </div>
+
+        <!-- ★ 新增：是否发抖音返现 -->
+        <div class="info-section-title">是否会将制作成品发抖音</div>
+        <div class="radio-group">
+          <label class="radio-option" id="douyinOptionYes">
+            <input type="radio" name="douyinPost" value="是" checked>
+            <div class="radio-text">
+              <div class="radio-title">✅ 是</div>
+              <div class="radio-desc">
+                发布 <span class="highlight">3 天</span>即可返现 <span class="highlight">10 元</span>，作品获得 <span class="highlight">50 点赞</span> 再返 <span class="highlight">10 元</span>
+              </div>
+            </div>
+          </label>
+          <label class="radio-option" id="douyinOptionNo">
+            <input type="radio" name="douyinPost" value="否">
+            <div class="radio-text">
+              <div class="radio-title">❌ 否</div>
+              <div class="radio-desc">不参与抖音发布返现活动</div>
+            </div>
+          </label>
         </div>
       </div>
 
@@ -2003,6 +2028,7 @@ function floatTo16(out, off, inp) {
  * 功能四：定制信息填写 + 导出信息文档
  * ============================================================ */
 (function () {
+  // 发货方式
   const shippingOptions = document.querySelectorAll('input[name="shippingMethod"]');
   function refreshShippingStyles() {
     document.getElementById('shippingOptionA').classList.toggle(
@@ -2024,6 +2050,28 @@ function floatTo16(out, off, inp) {
     return checked ? checked.value : '半成品发货308元';
   }
 
+  // 抖音返现
+  const douyinOptions = document.querySelectorAll('input[name="douyinPost"]');
+  function refreshDouyinStyles() {
+    document.getElementById('douyinOptionYes').classList.toggle(
+      'selected',
+      document.querySelector('input[name="douyinPost"][value="是"]').checked
+    );
+    document.getElementById('douyinOptionNo').classList.toggle(
+      'selected',
+      document.querySelector('input[name="douyinPost"][value="否"]').checked
+    );
+  }
+  douyinOptions.forEach(radio => {
+    radio.addEventListener('change', refreshDouyinStyles);
+  });
+  refreshDouyinStyles();
+
+  function getDouyinPost() {
+    const checked = document.querySelector('input[name="douyinPost"]:checked');
+    return checked ? checked.value : '是';
+  }
+
   function getInfoData() {
     const singer = document.getElementById('infoSinger').value.trim();
     const records = [];
@@ -2032,7 +2080,8 @@ function floatTo16(out, off, inp) {
     }
     const shipping = document.getElementById('infoShipping').value.trim();
     const method = getShippingMethod();
-    return { singer, records, shipping, method };
+    const douyin = getDouyinPost();
+    return { singer, records, shipping, method, douyin };
   }
 
   function buildInfoText() {
@@ -2081,6 +2130,15 @@ function floatTo16(out, off, inp) {
       });
     } else {
       lines.push('  未填写');
+    }
+    lines.push('');
+    lines.push('------------------------------------------------');
+    lines.push('【是否会将制作成品发抖音】');
+    if (d.douyin === '是') {
+      lines.push('  是');
+      lines.push('  （发布3天即可返现10元，作品获得50点赞再返10元）');
+    } else {
+      lines.push('  否');
     }
     lines.push('');
     lines.push('------------------------------------------------');
