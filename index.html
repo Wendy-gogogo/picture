@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   html, body { -webkit-tap-highlight-color: transparent; }
   .tab-content { display: none; }
@@ -49,6 +50,8 @@
     height: 100%;
     background: #fff;
     touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .image-item {
@@ -98,7 +101,6 @@
     color: var(--text);
   }
 
-  /* 让 canvas 自适应：容器撑满，canvas 按比例缩放 */
   .canvas-wrapper {
     position: relative;
     width: 100%;
@@ -113,7 +115,7 @@
     display: block;
     width: 100%;
     height: auto;
-    touch-action: none;   /* 关键：禁止页面手势，避免拖动图片时页面滚动 */
+    touch-action: none;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -220,7 +222,6 @@
     .btn-sm { flex: none; }
   }
 
-  /* 手柄在移动端放大显示 */
   .handle-hint {
     font-size: 12px;
     color: #64748b;
@@ -264,6 +265,7 @@
           <p id="imageListEmpty" class="text-gray-400 text-sm text-center py-8">暂无图片，请添加</p>
         </div>
         <button id="btnExportAll" class="w-full mt-3 px-4 py-3 bg-green-600 text-white text-base rounded active:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>批量导出全部图片</button>
+        <button id="btnExportZip" class="w-full mt-2 px-4 py-3 bg-purple-600 text-white text-base rounded active:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>📦 打包导出为 ZIP</button>
       </div>
       <div class="flex-1">
         <div id="editorArea" class="text-center">
@@ -279,7 +281,7 @@
             <div class="flex justify-center gap-3 mt-2">
               <button id="resetCurrentCanvas" class="px-5 py-2 bg-gray-200 active:bg-gray-300 rounded text-sm">重置位置</button>
             </div>
-            <div class="handle-hint">💡 单指拖动图片移动，滑块缩放</div>
+            <div class="handle-hint">💡 单指拖动图片 · 双指捏合缩放 · 或使用滑块</div>
           </div>
         </div>
       </div>
@@ -394,7 +396,6 @@
         </div>
       </div>
 
-      <!-- ============ 两个导出按钮 ============ -->
       <div class="export-area">
         <button id="btnExportPDF1" class="export-btn">
           📄 导出「相框正反面」PDF（2页）
@@ -450,19 +451,27 @@ const imageListEmpty = document.getElementById('imageListEmpty');
 const noImageHint = document.getElementById('noImageHint');
 const editorContent = document.getElementById('editorContent');
 const btnExportAll = document.getElementById('btnExportAll');
+const btnExportZip = document.getElementById('btnExportZip');
 
 let imageEntries = [];
 let currentEditId = null;
 let isDragging = false, dragStartX, dragStartY, imageStartX, imageStartY;
 
+/* 双指捏合状态 */
+let isPinching = false;
+let pinchStartDist = 0;
+let pinchStartCenter = { x: 0, y: 0 };
+let pinchStartScale = 1;
+let pinchStartEntryPos = { x: 0, y: 0 };
+
 function getCurrentEntry() {
   return currentEditId ? imageEntries.find(e => e.id === currentEditId) : null;
 }
-// 支持鼠标和触摸的位置换算
+// 兼容鼠标事件和触摸事件（touch 也可直接传进来）
 function getCanvasMousePos(e) {
   const rect = canvas.getBoundingClientRect();
-  const clientX = e.clientX != null ? e.clientX : (e.touches && e.touches[0].clientX);
-  const clientY = e.clientY != null ? e.clientY : (e.touches && e.touches[0].clientY);
+  const clientX = (e.clientX != null) ? e.clientX : (e.touches && e.touches[0].clientX);
+  const clientY = (e.clientY != null) ? e.clientY : (e.touches && e.touches[0].clientY);
   return {
     x: (clientX - rect.left) * (canvas.width / rect.width),
     y: (clientY - rect.top) * (canvas.height / rect.height)
@@ -510,6 +519,8 @@ function refreshImageList() {
       imageList.appendChild(div);
     });
   }
+  // 同步 ZIP 按钮状态
+  btnExportZip.disabled = imageEntries.length === 0;
 }
 function selectImage(id) {
   saveCurrentState();
@@ -590,7 +601,7 @@ document.getElementById('btnClearImages').addEventListener('click', () => {
   refreshImageList();
 });
 
-/* 屏幕图片编辑：鼠标 + 触摸双支持 */
+/* ============ 屏幕图片：鼠标 + 触摸 + 双指捏合 ============ */
 function imgStart(e) {
   const entry = getCurrentEntry();
   if (!entry) return;
@@ -612,25 +623,99 @@ function imgMove(e) {
 }
 function imgEnd() { isDragging = false; }
 
+/* --- 鼠标事件（PC） --- */
 canvas.addEventListener('mousedown', imgStart);
 canvas.addEventListener('mousemove', imgMove);
 canvas.addEventListener('mouseup', imgEnd);
 canvas.addEventListener('mouseleave', imgEnd);
 
+/* 滚轮缩放（PC） */
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const entry = getCurrentEntry();
+  if (!entry) return;
+  const pos = getCanvasMousePos(e);
+  const delta = e.deltaY > 0 ? -0.05 : 0.05;
+  const newScale = Math.max(0.1, Math.min(5.0, entry.scale + delta));
+  const mx = pos.x - entry.x;
+  const my = pos.y - entry.y;
+  entry.x = pos.x - mx * newScale / entry.scale;
+  entry.y = pos.y - my * newScale / entry.scale;
+  entry.scale = newScale;
+  updateScaleUI(entry);
+  drawCanvas(entry);
+}, { passive: false });
+
+/* --- 触摸事件（手机） --- */
 canvas.addEventListener('touchstart', (e) => {
-  if (e.touches.length === 1) {
+  const entry = getCurrentEntry();
+  if (!entry) return;
+
+  if (e.touches.length === 2) {
+    // 进入双指捏合模式
+    e.preventDefault();
+    isDragging = false;
+    isPinching = true;
+    const p0 = getCanvasMousePos(e.touches[0]);
+    const p1 = getCanvasMousePos(e.touches[1]);
+    pinchStartDist = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1;
+    pinchStartCenter = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
+    pinchStartScale = entry.scale;
+    pinchStartEntryPos = { x: entry.x, y: entry.y };
+  } else if (e.touches.length === 1) {
     e.preventDefault();
     imgStart(e.touches[0]);
   }
 }, { passive: false });
+
 canvas.addEventListener('touchmove', (e) => {
-  if (isDragging && e.touches.length === 1) {
+  const entry = getCurrentEntry();
+  if (!entry) return;
+
+  if (isPinching && e.touches.length === 2) {
+    e.preventDefault();
+    const p0 = getCanvasMousePos(e.touches[0]);
+    const p1 = getCanvasMousePos(e.touches[1]);
+    const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+    if (dist <= 0) return;
+    const ratio = dist / pinchStartDist;
+    const newScale = Math.max(0.1, Math.min(5.0, pinchStartScale * ratio));
+
+    // 以捏合中点为锚点缩放
+    const c = pinchStartCenter;
+    const relX = c.x - pinchStartEntryPos.x;
+    const relY = c.y - pinchStartEntryPos.y;
+    const k = newScale / pinchStartScale;
+
+    entry.scale = newScale;
+    entry.x = c.x - relX * k;
+    entry.y = c.y - relY * k;
+
+    // 实时同步滑块 UI
+    scaleSlider.value = Math.round(entry.scale * 100);
+    scaleValue.textContent = Math.round(entry.scale * 100);
+
+    drawCanvas(entry);
+  } else if (isDragging && e.touches.length === 1) {
     e.preventDefault();
     imgMove(e.touches[0]);
   }
 }, { passive: false });
-canvas.addEventListener('touchend', imgEnd);
-canvas.addEventListener('touchcancel', imgEnd);
+
+canvas.addEventListener('touchend', (e) => {
+  if (e.touches.length === 0) {
+    isDragging = false;
+    isPinching = false;
+  } else if (e.touches.length === 1 && isPinching) {
+    // 从双指变成单指：结束捏合，等待用户松手重新按下拖动
+    isPinching = false;
+    isDragging = false;
+  }
+});
+canvas.addEventListener('touchcancel', () => {
+  isDragging = false;
+  isPinching = false;
+});
 
 scaleSlider.addEventListener('input', () => {
   const entry = getCurrentEntry();
@@ -676,6 +761,63 @@ btnExportAll.addEventListener('click', () => {
   });
   showToast('✅ 正在批量导出 ' + imageEntries.length + ' 张图片...');
 });
+
+/* ============ 打包导出为 ZIP ============ */
+function canvasToBlobAsync(cnv, type = 'image/jpeg', quality = 0.95) {
+  return new Promise((resolve, reject) => {
+    if (cnv.toBlob) {
+      cnv.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob 失败')), type, quality);
+    } else {
+      try {
+        const dataURL = cnv.toDataURL(type, quality);
+        const bin = atob(dataURL.split(',')[1]);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        resolve(new Blob([arr], { type }));
+      } catch (err) { reject(err); }
+    }
+  });
+}
+
+btnExportZip.addEventListener('click', async () => {
+  saveCurrentState();
+  if (!imageEntries.length) { showToast('没有图片'); return; }
+
+  const origText = btnExportZip.textContent;
+  btnExportZip.disabled = true;
+  btnExportZip.textContent = '正在打包...';
+  showToast('正在打包，请稍候...', 6000);
+
+  try {
+    const zip = new JSZip();
+
+    for (let i = 0; i < imageEntries.length; i++) {
+      const entry = imageEntries[i];
+      const tmp = exportEntryToCanvas(entry);
+      const blob = await canvasToBlobAsync(tmp, 'image/jpeg', 0.95);
+      zip.file('picture-' + (i + 1) + '.jpg', blob);
+      btnExportZip.textContent = `打包中 ${i + 1}/${imageEntries.length}`;
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    // STORE：JPEG 已经压过，不再二次压缩，速度快
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'STORE',
+      mimeType: 'application/zip'
+    });
+
+    saveAs(zipBlob, 'pictures.zip');
+    showToast('✅ 已打包 ' + imageEntries.length + ' 张图片');
+  } catch (err) {
+    console.error(err);
+    showToast('❌ 打包失败：' + (err.message || '未知错误'), 3000);
+  } finally {
+    btnExportZip.disabled = imageEntries.length === 0;
+    btnExportZip.textContent = origText;
+  }
+});
+
 ctx.fillStyle = 'white';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -815,7 +957,6 @@ function floatTo16(out, off, inp) {
   const DISPLAY_WIDTH = 750;
   const DISPLAY_HEIGHT = Math.round(DISPLAY_WIDTH * 210 / 297);
   const DPR = 2;
-  // 手机内存有限，导出倍率从 8 降到 4（3000×2120，A4 约 256dpi，打印足够）
   const EXPORT_SCALE = 4;
   const SNAP_THRESHOLD = 8;
 
@@ -843,7 +984,6 @@ function floatTo16(out, off, inp) {
       this.dragStart = { x: 0, y: 0 };
       this.dragStartLayer = null;
       this.dragStartHandle = null;
-      // 双指缩放
       this.pinching = false;
       this.pinchStartDist = 0;
       this.pinchStartCenter = { x: 0, y: 0 };
@@ -855,11 +995,9 @@ function floatTo16(out, off, inp) {
     initCanvas() {
       this.canvas.width = DISPLAY_WIDTH * DPR;
       this.canvas.height = DISPLAY_HEIGHT * DPR;
-      // 不设置 style.width/height，由 CSS 响应式控制
       this.draw();
     }
 
-    // 从鼠标或触摸事件换算逻辑坐标
     getCanvasPos(e) {
       const rect = this.canvas.getBoundingClientRect();
       const cx = e.clientX != null ? e.clientX : e.touches[0].clientX;
@@ -897,12 +1035,10 @@ function floatTo16(out, off, inp) {
       }
     }
 
-    // 手柄命中（放大触摸区域）
     getHandleUnderMouse(pos) {
       if (this.selectedIndex < 0) return null;
       const l = this.layers[this.selectedIndex];
       const { x, y, w, h } = l;
-      // 手机上手指粗，触摸区域扩大到 24 逻辑像素
       const T = 24;
       const handles = [
         { name: 'nw', x, y },
@@ -993,9 +1129,7 @@ function floatTo16(out, off, inp) {
       }
     }
 
-    /* ---------- 指针按下：统一处理鼠标和触摸 ---------- */
     handlePointerDown(pos) {
-      // 1. 检查手柄
       if (this.selectedIndex >= 0) {
         const handle = this.getHandleUnderMouse(pos);
         if (handle) {
@@ -1006,7 +1140,6 @@ function floatTo16(out, off, inp) {
           return;
         }
       }
-      // 2. 检查图层
       for (let i = this.layers.length - 1; i >= 0; i--) {
         const l = this.layers[i];
         if (pos.x >= l.x && pos.x <= l.x + l.w && pos.y >= l.y && pos.y <= l.y + l.h) {
@@ -1016,7 +1149,6 @@ function floatTo16(out, off, inp) {
           return;
         }
       }
-      // 3. 检查蒙版（多蒙版时）
       if (this.masks.length > 1) {
         for (let i = 0; i < this.masks.length; i++) {
           const m = this.masks[i];
@@ -1094,9 +1226,7 @@ function floatTo16(out, off, inp) {
       this.draw();
     }
 
-    /* ---------- 事件绑定 ---------- */
     bindEvents() {
-      // 鼠标（PC）
       this.canvas.addEventListener('mousedown', e => {
         e.preventDefault();
         this.handlePointerDown(this.getCanvasPos(e));
@@ -1107,13 +1237,11 @@ function floatTo16(out, off, inp) {
       });
       window.addEventListener('mouseup', () => { this.dragging = false; });
 
-      // 触摸（手机）
       this.canvas.addEventListener('touchstart', e => {
         e.preventDefault();
         if (e.touches.length === 1) {
           this.handlePointerDown(this.getCanvasPos(e));
         } else if (e.touches.length === 2) {
-          // 双指缩放
           this.pinching = true;
           const p0 = this.getCanvasPos(e.touches[0]);
           const p1 = this.getCanvasPos(e.touches[1]);
@@ -1139,7 +1267,6 @@ function floatTo16(out, off, inp) {
           const l = this.layers[this.selectedIndex];
           const newW = Math.max(20, base.w * ratio);
           const newH = Math.max(20, base.h * ratio);
-          // 以 pinch 中心为锚点缩放
           const c = this.pinchStartCenter;
           const rx = (c.x - base.x) / base.w;
           const ry = (c.y - base.y) / base.h;
@@ -1159,16 +1286,14 @@ function floatTo16(out, off, inp) {
           this.pinching = false;
           this.pinchStartLayer = null;
         } else if (e.touches.length === 1 && this.pinching) {
-          // 从双指变回单指，结束缩放，重新进入拖动模式
           this.pinching = false;
           this.pinchStartLayer = null;
-          this.dragging = false; // 用户需重新按下才会拖动
+          this.dragging = false;
         }
       };
       this.canvas.addEventListener('touchend', endTouch);
       this.canvas.addEventListener('touchcancel', endTouch);
 
-      // 滚轮缩放（PC）
       this.canvas.addEventListener('wheel', e => {
         e.preventDefault();
         if (this.selectedIndex >= 0 && !this.dragging) {
@@ -1301,7 +1426,6 @@ function floatTo16(out, off, inp) {
       }
       c2.restore();
 
-      // 外圈
       c2.beginPath();
       c2.arc(cx, cy, r, 0, Math.PI * 2);
       c2.strokeStyle = i === selIdx ? '#4f6ef7' : (d.img ? 'rgba(79,110,247,0.4)' : '#d5dae5');
@@ -1340,7 +1464,6 @@ function floatTo16(out, off, inp) {
     return -1;
   }
 
-  /* ---------- 黑胶：鼠标支持（PC） ---------- */
   canvas2.addEventListener('mousedown', e => {
     const p = pos2(e), i = idx2(p);
     if (i < 0) { selIdx = -1; draw2(); return; }
@@ -1375,7 +1498,6 @@ function floatTo16(out, off, inp) {
     }
   });
 
-  /* ---------- 黑胶：触摸支持（手机） ---------- */
   canvas2.addEventListener('touchstart', e => {
     e.preventDefault();
     const p = pos2(e.touches[0]);
@@ -1383,7 +1505,6 @@ function floatTo16(out, off, inp) {
 
     if (i < 0) { selIdx = -1; draw2(); return; }
 
-    // 空圆：直接弹上传
     if (!circleData[i].img) {
       selIdx = i;
       hiddenFile2.value = '';
@@ -1392,10 +1513,8 @@ function floatTo16(out, off, inp) {
       return;
     }
 
-    // 已填充圆：判断双击
     const now = Date.now();
     if (selIdx === i && now - lastTapTime < 320) {
-      // 双击替换
       hiddenFile2.value = '';
       hiddenFile2.click();
       lastTapTime = 0;
@@ -1403,13 +1522,11 @@ function floatTo16(out, off, inp) {
     }
     lastTapTime = now;
 
-    // 第一次点击：只选中
     if (selIdx !== i) {
       selIdx = i;
       draw2();
       return;
     }
-    // 已选中：进入拖动模式
     drag2 = true;
     ds2 = { x: p.x, y: p.y };
     doff = { x: circleData[i].ox, y: circleData[i].oy };
@@ -1485,18 +1602,15 @@ function floatTo16(out, off, inp) {
     return vc;
   }
 
-  // 导出按钮1：相框正面 + 背面
   document.getElementById('btnExportPDF1').addEventListener('click', () => {
     try {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const width = 297, height = 210;
 
-      // 第 1 页：相框正面
       let imgData = editorA.exportCanvas().toDataURL('image/jpeg', 0.95);
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
 
-      // 第 2 页：相框背面
       imgData = editorB.exportCanvas().toDataURL('image/jpeg', 0.95);
       pdf.addPage();
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
@@ -1509,18 +1623,15 @@ function floatTo16(out, off, inp) {
     }
   });
 
-  // 导出按钮2：相框内侧 + 黑胶唱片
   document.getElementById('btnExportPDF2').addEventListener('click', () => {
     try {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const width = 297, height = 210;
 
-      // 第 1 页：相框内侧
       let imgData = editorC.exportCanvas().toDataURL('image/jpeg', 0.95);
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
 
-      // 第 2 页：黑胶唱片
       imgData = makeVinylExportCanvas().toDataURL('image/jpeg', 0.95);
       pdf.addPage();
       pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
@@ -1533,7 +1644,6 @@ function floatTo16(out, off, inp) {
     }
   });
 
-  /* 进入选项卡2时自动初始化 vinyl canvas */
   const tab2 = document.querySelector('[data-content="2"]');
   const observer = new MutationObserver(() => {
     if (tab2.classList.contains('active') && !vinylReady) initVinylCanvas();
