@@ -22,6 +22,27 @@
     padding: 12px 14px; font-size: 15px; font-weight: 500;
     border: none; background: transparent; cursor: pointer;
     color: #6b7280; white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  /* ★ 序号圆圈 */
+  .tab-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .tab-button.active .tab-num {
+    background: #2563eb;
+    color: #fff;
   }
   .tab-button.active {
     color: #2563eb;
@@ -125,7 +146,6 @@
     color: var(--text);
   }
 
-  /* ★ 收货名称输入卡片 */
   .name-input-card {
     background: #fff;
     border: 2px solid #f43f5e;
@@ -451,7 +471,8 @@
     body { font-size: 14px; }
     h1 { font-size: 22px !important; }
     h2 { font-size: 18px !important; }
-    .tab-button { font-size: 13px; padding: 10px 8px; }
+    .tab-button { font-size: 13px; padding: 10px 8px; gap: 4px; }
+    .tab-num { width: 18px; height: 18px; font-size: 11px; }
     .card-header { flex-direction: column; align-items: flex-start; }
     .upload-group { width: 100%; }
     .btn { flex: 1; justify-content: center; }
@@ -476,10 +497,18 @@
   </p>
 
   <div class="tabs-wrap">
-    <button class="tab-button active" data-tab="0">🖼️ 屏幕图片编辑</button>
-    <button class="tab-button" data-tab="1">🎵 音乐文件编辑</button>
-    <button class="tab-button" data-tab="2">📷 相框照片和唱片图片定制</button>
-    <button class="tab-button" data-tab="3">📝 定制信息填写</button>
+    <button class="tab-button active" data-tab="0">
+      <span class="tab-num">1</span> 🖼️ 屏幕图片编辑
+    </button>
+    <button class="tab-button" data-tab="1">
+      <span class="tab-num">2</span> 🎵 音乐文件编辑
+    </button>
+    <button class="tab-button" data-tab="2">
+      <span class="tab-num">3</span> 📷 相框照片和唱片图片定制
+    </button>
+    <button class="tab-button" data-tab="3">
+      <span class="tab-num">4</span> 📝 定制信息填写
+    </button>
   </div>
 
   <!-- ============ 选项卡0：屏幕图片编辑 ============ -->
@@ -581,7 +610,6 @@
         <p class="handle-hint mt-1">💡 单指拖动图片 · 双指捏合缩放 · 拖角手柄调整大小</p>
       </div>
 
-      <!-- ★ 收货名称输入（必填） -->
       <div class="name-input-card">
         <label for="designShippingName">
           📛 收货名称
@@ -1395,13 +1423,11 @@ function floatTo16(out, off, inp) {
   const EXPORT_SCALE = 4;
   const SNAP_THRESHOLD = 8;
 
-  // ★ 获取收货名称（必填）
   function getDesignName() {
     const el = document.getElementById('designShippingName');
     return (el && el.value || '').trim();
   }
 
-  // ★ 校验收货名称，未填就提示并返回 false
   function requireDesignName() {
     const name = getDesignName();
     if (!name) {
@@ -1416,14 +1442,9 @@ function floatTo16(out, off, inp) {
     return true;
   }
 
-  /**
-   * ★ 在画布右下角绘制收货名称水印
-   * 使用白色描边 + 深色文字，不与蒙版主体内容冲突
-   */
   function drawDesignNameWatermark(ctx, canvasW, canvasH, name) {
     if (!name) return;
     const S = EXPORT_SCALE;
-    // 字号：基础 13px × 导出倍率
     const fontSize = 13 * S;
     const paddingRight = 24 * S;
     const paddingBottom = 20 * S;
@@ -1436,13 +1457,11 @@ function floatTo16(out, off, inp) {
     const x = canvasW - paddingRight;
     const y = canvasH - paddingBottom;
 
-    // 白色描边
     ctx.lineWidth = 4 * S;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.lineJoin = 'round';
     ctx.strokeText(name, x, y);
 
-    // 深色填充
     ctx.fillStyle = 'rgba(30, 30, 50, 0.88)';
     ctx.fillText(name, x, y);
 
@@ -1798,7 +1817,6 @@ function floatTo16(out, off, inp) {
       }, { passive: false });
     }
 
-    // ★ 导出 canvas（带收货名称水印）
     exportCanvas(watermarkName) {
       const ew = DISPLAY_WIDTH * EXPORT_SCALE;
       const eh = DISPLAY_HEIGHT * EXPORT_SCALE;
@@ -1820,7 +1838,6 @@ function floatTo16(out, off, inp) {
         });
         cx.restore();
       });
-      // ★ 叠加右下角水印
       drawDesignNameWatermark(cx, ew, eh, watermarkName);
       return ec;
     }
@@ -2062,7 +2079,6 @@ function floatTo16(out, off, inp) {
     draw2();
   });
 
-  // ★ 黑胶导出 canvas（带收货名称水印）
   function makeVinylExportCanvas(watermarkName) {
     const vc = document.createElement('canvas');
     vc.width = DISPLAY_WIDTH * EXPORT_SCALE;
@@ -2086,12 +2102,10 @@ function floatTo16(out, off, inp) {
       }
       vctx.restore();
     });
-    // ★ 叠加右下角水印
     drawDesignNameWatermark(vctx, vc.width, vc.height, watermarkName);
     return vc;
   }
 
-  // ★ 导出按钮 1：相框正反面（先校验收货名称）
   document.getElementById('btnExportPDF1').addEventListener('click', () => {
     if (!requireDesignName()) return;
     const name = getDesignName();
@@ -2115,7 +2129,6 @@ function floatTo16(out, off, inp) {
     }
   });
 
-  // ★ 导出按钮 2：侧边+唱片（先校验收货名称）
   document.getElementById('btnExportPDF2').addEventListener('click', () => {
     if (!requireDesignName()) return;
     const name = getDesignName();
